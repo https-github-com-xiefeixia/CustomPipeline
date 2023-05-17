@@ -25,10 +25,7 @@ CCProgram standard-vs %{
     vec4 position;
     CCVertInput(position);
 
-    mat4 matWorld;
-    CCGetWorldMatrix(matWorld);
-
-    return cc_matProj * (cc_matView * matWorld) * position;
+    return cc_matProj * cc_matView * position;
   }
 }%
 

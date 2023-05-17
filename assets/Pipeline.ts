@@ -55,8 +55,8 @@ export function buildProgrammableBlendPass(camera: renderer.scene.Camera, pipeli
     // addOrUpdateRenderTarget("ds", gfx.Format.DEPTH, width, height, rendering.ResourceResidency.MEMORYLESS, pipeline);
 
     const clearColor = new gfx.Color(0, 0, 0, 0);
-    const builder = pipeline.addRasterPass(width, height, 'default');
-    const subpass0 = builder.addRasterSubpass('custom-sub0');
+    const builder = pipeline.addRenderPass(width, height, 'default');
+    const subpass0 = builder.addRenderSubpass('custom-sub0');
     subpass0.addRenderTarget("c0", rendering.AccessType.WRITE, "_", gfx.LoadOp.CLEAR, gfx.StoreOp.DISCARD, clearColor);
     subpass0.addRenderTarget("c1", rendering.AccessType.WRITE, "_", gfx.LoadOp.CLEAR, gfx.StoreOp.DISCARD, clearColor);
     subpass0.addRenderTarget("c2", rendering.AccessType.WRITE, "_", gfx.LoadOp.CLEAR, gfx.StoreOp.DISCARD, clearColor);
@@ -67,9 +67,9 @@ export function buildProgrammableBlendPass(camera: renderer.scene.Camera, pipeli
         .addQueue(rendering.QueueHint.RENDER_OPAQUE)
         .addFullscreenQuad(sub0Mat, 0);
 
-    const subpass1 = builder.addRasterSubpass('custom-sub1');
-    subpass1.addRenderTarget("c0", rendering.AccessType.READ, "inC0", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
-    subpass1.addRenderTarget("c1", rendering.AccessType.READ, "inC1", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
+    const subpass1 = builder.addRenderSubpass('custom-sub1');
+    subpass1.addRenderTarget("c0", rendering.AccessType.READ, "c0", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
+    subpass1.addRenderTarget("c1", rendering.AccessType.READ, "c1", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
     subpass1.addRenderTarget("c4", rendering.AccessType.WRITE, "_", gfx.LoadOp.CLEAR, gfx.StoreOp.STORE, clearColor);
     // subpass1.addDepthStencil("ds", rendering.AccessType.READ, "inds", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD);
 
@@ -77,9 +77,9 @@ export function buildProgrammableBlendPass(camera: renderer.scene.Camera, pipeli
         .addQueue(rendering.QueueHint.RENDER_OPAQUE)
         .addFullscreenQuad(sub1Mat, 0);
 
-    const subpass2 = builder.addRasterSubpass('custom-sub2');
-    subpass2.addRenderTarget("c2", rendering.AccessType.READ, "inC0", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
-    subpass2.addRenderTarget("c3", rendering.AccessType.READ, "inC1", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
+    const subpass2 = builder.addRenderSubpass('custom-sub2');
+    subpass2.addRenderTarget("c2", rendering.AccessType.READ, "c0", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
+    subpass2.addRenderTarget("c3", rendering.AccessType.READ, "c1", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
     subpass2.addRenderTarget("c4", rendering.AccessType.WRITE, "_", gfx.LoadOp.DISCARD, gfx.StoreOp.STORE, clearColor);
     // subpass2.addDepthStencil("ds", rendering.AccessType.READ, "inds", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD);
 
