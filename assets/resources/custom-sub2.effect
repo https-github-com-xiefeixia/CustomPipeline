@@ -37,14 +37,14 @@ CCProgram standard-fs %{
   precision mediump float;
 
   #pragma extension([GL_EXT_shader_framebuffer_fetch, __VERSION__ < 450, enable])
-  #pragma subpassInOut in c0
-  #pragma subpassInOut in c1
-  #pragma subpassInOut out c2
+  #pragma subpass Color in c0
+  #pragma subpass Color in c1
+  #pragma subpass Color out color
 
   void main () {
-    vec4 v1 = inputLoad0;
-    vec4 v2 = inputLoad1;
-    c2 = v1 + v2;
+    vec4 v1 = inputLoad_c0;
+    vec4 v2 = inputLoad_c1;
+    out_color = v1 + v2;
     // vec4 v3 = inputLoad2;
     // c2 = v1 + v2 + v3;
   }
