@@ -69,8 +69,9 @@ export function buildProgrammableBlendPass(camera: renderer.scene.Camera, pipeli
 
     const subpass1 = builder.addRenderSubpass('custom-sub1');
     subpass1.addRenderTarget("c0", rendering.AccessType.READ, "c0", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
+    subpass1.addRenderTarget("c4", rendering.AccessType.WRITE, "color", gfx.LoadOp.CLEAR, gfx.StoreOp.STORE, clearColor);
     subpass1.addRenderTarget("c1", rendering.AccessType.READ, "c1", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
-    subpass1.addRenderTarget("c4", rendering.AccessType.WRITE, "_", gfx.LoadOp.CLEAR, gfx.StoreOp.STORE, clearColor);
+    
     // subpass1.addDepthStencil("ds", rendering.AccessType.READ, "inds", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD);
 
     subpass1
@@ -78,9 +79,9 @@ export function buildProgrammableBlendPass(camera: renderer.scene.Camera, pipeli
         .addFullscreenQuad(sub1Mat, 0);
 
     const subpass2 = builder.addRenderSubpass('custom-sub2');
-    subpass2.addRenderTarget("c2", rendering.AccessType.READ, "c0", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
     subpass2.addRenderTarget("c3", rendering.AccessType.READ, "c1", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
-    subpass2.addRenderTarget("c4", rendering.AccessType.WRITE, "_", gfx.LoadOp.DISCARD, gfx.StoreOp.STORE, clearColor);
+    subpass2.addRenderTarget("c4", rendering.AccessType.READ_WRITE, "color", gfx.LoadOp.DISCARD, gfx.StoreOp.STORE, clearColor);
+    subpass2.addRenderTarget("c2", rendering.AccessType.READ, "c0", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD, clearColor);
     // subpass2.addDepthStencil("ds", rendering.AccessType.READ, "inds", gfx.LoadOp.DISCARD, gfx.StoreOp.DISCARD);
 
     subpass2
