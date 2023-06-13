@@ -16,7 +16,7 @@ function SRGBToLinear (out, gamma: Vec4) {
 export function isUICamera (camera): boolean {
     const scene = camera.scene!;
     const batches = scene.batches;
-    for (let i = 0; i < batches.length; i++) {
+    for (let i = 0; i < batches && batches.length; i++) {
         const batch = batches[i];
         if (camera.visibility & batch.visFlags) {
             return true;

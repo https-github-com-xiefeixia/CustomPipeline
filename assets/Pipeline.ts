@@ -1,4 +1,4 @@
-import { _decorator, rendering, renderer, game, Game, gfx, Material, resources } from 'cc';
+import { _decorator, rendering, renderer, game, Game, gfx, Material, resources, Camera } from 'cc';
 import { JSB } from 'cc/env';
 import { AntiAliasing,
     buildForwardPass, buildBloomPasses, buildFxaaPass, buildPostprocessPass, buildUIPass,
@@ -157,41 +157,64 @@ export function builtBlitPass(camera: renderer.scene.Camera, pipeline: rendering
     const clearColor = new gfx.Color(0, 0, 0, 0);
     const builder = pipeline.addRenderPass(width, height, 'blit-custom');
     builder.addRenderTarget("output", gfx.LoadOp.CLEAR, gfx.StoreOp.STORE, clearColor);
-
     builder.addQueue(rendering.QueueHint.NONE).addFullscreenQuad(blitMat, 0, rendering.SceneFlags.NONE);
-
-    const regions: gfx.BufferTextureCopy[] = [];
-    const region0 = new gfx.BufferTextureCopy();
-    region0.texOffset.x = 0;
-    region0.texOffset.y = 0;
-    region0.texExtent.width = width;
-    region0.texExtent.height = height;
-    regions.push(region0);
-
-    const needSize = 4 * width * height;
-    const buffer = new Uint8Array(needSize);
-
-    const bufferViews: ArrayBufferView[] = [];
-    bufferViews.push(buffer);
-
-    pipeline.device.copyTextureToBuffers(camera.window.framebuffer.colorTextures[0], bufferViews, regions);
 }
 
 @ccclass('Pipeline2')
 export class TestBlitPipeline  implements rendering.PipelineBuilder {
     setup(cameras: renderer.scene.Camera[], pipeline: rendering.Pipeline): void {
-        if (!JSB) {
-            buildWebPipeline(cameras, pipeline);
+        decideProfilerCamera(cameras);
+        const camera = cameras[0];
+        const isGameView = camera.cameraUsage === renderer.scene.CameraUsage.GAME
+            || camera.cameraUsage === renderer.scene.CameraUsage.GAME_VIEW;
+        if (!isGameView) {
+            // forward pass
+            buildForwardPass(camera, pipeline, isGameView);
+            return;
+        }
+
+
+        let blitCamera = null;
+        let onScreenCamera = null;
+        for (let i = 0; i < cameras.length; ++i) {
+            const camera = cameras[i];
+            if (camera.name === 'Main Camera-001') {
+                blitCamera = camera;
+            }
+            if (camera.name === 'Main Camera-002') {
+                onScreenCamera = camera;
+            }
+        }
+
+
+        builtBlitPass(blitCamera, pipeline);
+
+        const onScreen = true;
+        let screenBuffer = null;
+
+        if (onScreen) {
+            buildPostprocessPass(onScreenCamera, pipeline, "output", AntiAliasing.NONE);
         } else {
-            builtBlitPass(cameras[0], pipeline);
+            const regions: gfx.BufferTextureCopy[] = [];
+            const region0 = new gfx.BufferTextureCopy();
+            region0.texOffset.x = 0;
+            region0.texOffset.y = 0;
+            region0.texExtent.width = blitCamera.window.width;
+            region0.texExtent.height = blitCamera.window.height;
+            regions.push(region0);
+        
+            const needSize = 4 * region0.texExtent.width * region0.texExtent.height;
+            screenBuffer = new Uint8Array(needSize);
+        
+            const bufferViews: ArrayBufferView[] = [];
+            bufferViews.push(screenBuffer);
+        
+            pipeline.device.copyTextureToBuffers(blitCamera.window.framebuffer.colorTextures[0], bufferViews, regions);
         }
     }
 }
 
 game.on(Game.EVENT_RENDERER_INITED, () => {
     rendering.setCustomPipeline('CustomPipeline', new TestCustomPipeline);
-});
-
-game.on(Game.EVENT_RENDERER_INITED, () => {
     rendering.setCustomPipeline('CustomPipeline2', new TestBlitPipeline);
 });
