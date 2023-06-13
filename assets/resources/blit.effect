@@ -1,0 +1,44 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: blit-vs
+      frag: blit-fs
+      pass: blit-custom
+      properties: &props
+        mainTexture:              { value: grey, target: tex, editor: { displayName: InputTexture } }
+}%
+
+CCProgram blit-vs %{
+  precision highp float;
+  #include <legacy/decode-standard>
+  #include <builtin/uniforms/cc-global>
+  #include <common/common-define>
+
+  out vec2 v_uv;
+
+  void main () {
+    StandardVertInput In;
+    CCDecode(In);
+    CC_HANDLE_GET_CLIP_FLIP(In.position.xy);
+    gl_Position = In.position;
+    v_uv = a_texCoord;
+  }
+}%
+
+CCProgram blit-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  in vec2 v_uv;
+
+  uniform sampler2D tex;
+  layout(location = 0) out vec4 fragColor;
+
+  void main () {
+    vec4 color = texture(tex, v_uv); 
+
+    fragColor = color * vec4(0.5, 0.2, 0.3, 1.0);
+  }
+}%

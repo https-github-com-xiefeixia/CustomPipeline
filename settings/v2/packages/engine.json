@@ -118,6 +118,9 @@
       "marionette": {
         "_value": true
       },
+      "procedural-animation": {
+        "_value": false
+      },
       "custom-pipeline": {
         "_value": true
       }
@@ -158,6 +161,6 @@
     }
   },
   "macroConfig": {
-    "CUSTOM_PIPELINE_NAME": "CustomPipeline"
+    "CUSTOM_PIPELINE_NAME": "CustomPipeline2"
   }
 }

@@ -1,0 +1,42 @@
+{
+  "__version__": "1.0.0",
+  "information": {
+    "customSplash": {
+      "id": "customSplash",
+      "label": "customSplash",
+      "enable": true,
+      "customSplash": {
+        "complete": false,
+        "form": "https://creator-api.cocos.com/api/form/show?sid=69ad10e6fced177e48b7ddf4b9794ab8"
+      }
+    },
+    "removeSplash": {
+      "id": "removeSplash",
+      "label": "removeSplash",
+      "enable": true,
+      "removeSplash": {
+        "complete": false,
+        "form": "https://creator-api.cocos.com/api/form/show?sid=69ad10e6fced177e48b7ddf4b9794ab8"
+      }
+    },
+    "timestamp": 1685685489599,
+    "build-windows": {
+      "id": "build-windows",
+      "label": "build-windows",
+      "enable": false,
+      "build-windows": {
+        "complete": false,
+        "form": "https://creator-api.cocos.com/api/form/show?"
+      }
+    },
+    "build-android": {
+      "id": "build-android",
+      "label": "build-android",
+      "enable": false,
+      "build-android": {
+        "complete": false,
+        "form": "https://creator-api.cocos.com/api/form/show?"
+      }
+    }
+  }
+}

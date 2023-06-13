@@ -9,6 +9,7 @@ const { ccclass, property } = _decorator;
 let sub0Mat: Material = null;
 let sub1Mat: Material = null;
 let sub2Mat: Material = null;
+let blitMat: Material = null;
 
 resources.load('custom-sub0', Material, (error, material) => {
     sub0Mat = material;
@@ -20,6 +21,10 @@ resources.load('custom-sub1', Material, (error, material) => {
 
 resources.load('custom-sub2', Material, (error, material) => {
     sub2Mat = material;
+});
+
+resources.load('blitMat', Material, (error, material) => {
+    blitMat = material;
 });
 
 function addOrUpdateRenderTarget(name: string, format: gfx.Format, width: number, height: number, residency: rendering.ResourceResidency, pipeline: rendering.Pipeline) {
@@ -87,6 +92,13 @@ export function buildProgrammableBlendPass(camera: renderer.scene.Camera, pipeli
     subpass2
         .addQueue(rendering.QueueHint.RENDER_OPAQUE)
         .addFullscreenQuad(sub2Mat, 0);
+
+    // const layout = pipeline.device.createDescriptorSetLayout(new gfx.DescriptorSetLayoutInfo());
+
+    // let setInfo = new gfx.DescriptorSetInfo();
+    // setInfo.layout = layout;
+    // const set = pipeline.device.createDescriptorSet(setInfo);
+    // set.bindTexture(0, null, 0);
 }
 
 export function buildNativePipeline(cameras: renderer.scene.Camera[], pipeline: rendering.Pipeline) {
@@ -131,6 +143,55 @@ export class TestCustomPipeline  implements rendering.PipelineBuilder {
     }
 }
 
+export function builtBlitPass(camera: renderer.scene.Camera, pipeline: rendering.Pipeline) {
+    const area = getRenderArea(camera, camera.window.width, camera.window.height);
+    const width = area.width;
+    const height = area.height;
+
+    if (!pipeline.containsResource("output")) {
+        pipeline.addRenderWindow("output", gfx.Format.RGBA8, width, height, camera.window);
+    } else {
+        pipeline.updateRenderWindow("output", camera.window);
+    }
+    
+    const clearColor = new gfx.Color(0, 0, 0, 0);
+    const builder = pipeline.addRenderPass(width, height, 'blit-custom');
+    builder.addRenderTarget("output", gfx.LoadOp.CLEAR, gfx.StoreOp.STORE, clearColor);
+
+    builder.addQueue(rendering.QueueHint.NONE).addFullscreenQuad(blitMat, 0, rendering.SceneFlags.NONE);
+
+    const regions: gfx.BufferTextureCopy[] = [];
+    const region0 = new gfx.BufferTextureCopy();
+    region0.texOffset.x = 0;
+    region0.texOffset.y = 0;
+    region0.texExtent.width = width;
+    region0.texExtent.height = height;
+    regions.push(region0);
+
+    const needSize = 4 * width * height;
+    const buffer = new Uint8Array(needSize);
+
+    const bufferViews: ArrayBufferView[] = [];
+    bufferViews.push(buffer);
+
+    pipeline.device.copyTextureToBuffers(camera.window.framebuffer.colorTextures[0], bufferViews, regions);
+}
+
+@ccclass('Pipeline2')
+export class TestBlitPipeline  implements rendering.PipelineBuilder {
+    setup(cameras: renderer.scene.Camera[], pipeline: rendering.Pipeline): void {
+        if (!JSB) {
+            buildWebPipeline(cameras, pipeline);
+        } else {
+            builtBlitPass(cameras[0], pipeline);
+        }
+    }
+}
+
 game.on(Game.EVENT_RENDERER_INITED, () => {
     rendering.setCustomPipeline('CustomPipeline', new TestCustomPipeline);
+});
+
+game.on(Game.EVENT_RENDERER_INITED, () => {
+    rendering.setCustomPipeline('CustomPipeline2', new TestBlitPipeline);
 });
