@@ -1,0 +1,161 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      properties: &props
+        mainTex:         { value: white }
+        heightTex:         { value: white }
+        heightBlurTex:         { value: white }
+        blurTex0:        { value: white }
+        blurTex1:       { value: white }
+        blurTex2:         { value: white }
+        blurTex3:         { value: white }
+        blurTex4:       { value: white }
+        blurTex5:       { value: white }
+        blurTex6:         { value: white }
+        
+        blurContrast:    { value: 1.0 }
+        blur0Weight:    { value: 1.0 }
+        blur0Contrast:    { value: 1.0 }
+        blur1Weight:    { value: 1.0 } 
+        blur1Contrast:    { value: 1.0 }
+        blur2Weight:    { value: 1.0 }
+        blur2Contrast:    { value: 1.0 }
+        blur3Weight:    { value: 1.0 }
+        blur3Contrast:    { value: 1.0 }
+        blur4Weight:    { value: 1.0 }
+        blur4Contrast:    { value: 1.0 }
+        blur5Weight:    { value: 1.0 }
+        blur5Contrast:    { value: 1.0 }
+        blur6Weight:    { value: 1.0 }
+        blur6Contrast:    { value: 1.0 }
+
+        finalContrast:    { value: 1.0 }
+        gamaCorrection:    { value: 1.0 }
+        slopeBias:    { value: 1.0 }
+        shapeRecognition:    { value: 1.0 }
+        lightRotation:    { value: 1.0 }
+        angularity:    { value: 1.0 }
+        angularIntensity:    { value: 1.0 } 
+        flipNormalY:    { value: 1 }
+        slider:    { value: 1.0 }
+}%
+
+CCProgram sprite-vs %{
+  precision highp float; 
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <hidden/units>
+  uniform Constant {
+      float blurContrast;
+      float blur0Weight;
+      float blur0Contrast;
+      float blur1Weight;
+      float blur1Contrast;
+      float blur2Weight;
+      float blur2Contrast;
+      float blur3Weight;
+      float blur3Contrast;
+      float blur4Weight;
+      float blur4Contrast;
+      float blur5Weight;
+      float blur5Contrast;
+      float blur6Weight;
+      float blur6Contrast;
+
+      float finalContrast;
+      float gamaCorrection;
+      float slopeBias;
+      float shapeRecognition;
+      float lightRotation;
+      float angularity;
+      float angularIntensity;
+      float flipNormalY;
+      float  slider;
+  };
+  in vec4 color;
+  in vec2 uv0;
+  uniform  sampler2D mainTex;
+  uniform  sampler2D heightTex;
+  uniform  sampler2D heightBlurTex;
+  uniform  sampler2D blurTex0;
+  uniform  sampler2D blurTex1;
+  uniform  sampler2D blurTex2;
+  uniform  sampler2D blurTex3;
+  uniform  sampler2D blurTex4;
+  uniform  sampler2D blurTex5;
+  uniform  sampler2D blurTex6;    
+
+  vec4 frag ()
+	{
+        vec2 UV = uv0;
+
+				vec4 _mainTex = vec4( texture(blurTex0, UV ).xyz, 1.0 ) * blur0Weight;
+				vec4 _blurTex1 = vec4( texture(blurTex1, UV ).xyz, 1.0 ) * blur1Weight;
+				vec4 _blurTex2 = vec4( texture(blurTex2, UV ).xyz, 1.0 ) * blur2Weight;
+				vec4 _blurTex3 = vec4( texture(blurTex3, UV ).xyz, 1.0 ) * blur3Weight;
+				vec4 _blurTex4 = vec4( texture(blurTex4, UV ).xyz, 1.0 ) * blur4Weight;
+				vec4 _blurTex5 = vec4( texture(blurTex5, UV ).xyz, 1.0 ) * blur5Weight;
+				vec4 _blurTex6 = vec4( texture(blurTex6, UV ).xyz, 1.0 ) * blur6Weight;
+				
+				_mainTex = _mainTex + _blurTex1 + _blurTex2 + _blurTex3 + _blurTex4 + _blurTex5 + _blurTex6;
+				
+				_mainTex *= 1.0 / _mainTex.w;
+				
+				_mainTex.xyz = normalize( _mainTex.xyz * 2.0 - 1.0 );
+				
+				vec3 angularDir = normalize( vec3( normalize( vec3( _mainTex.xy, 0.01 ) ).xy * angularIntensity, max( 1.0 - angularIntensity, 0.01 ) ) );
+				_mainTex.xyz = lerp( _mainTex.xyz, angularDir, angularity );
+				
+				_mainTex.xy = _mainTex.xy * max( finalContrast, 0.01 );
+				_mainTex.z = pow( saturate( _mainTex.z ), max( finalContrast, 0.01 ) );
+				
+				_mainTex.xyz = normalize( _mainTex.xyz ) * 0.5 + 0.5;
+
+				return vec4( _mainTex.xyz, 1.0 );
+	}
+
+}%

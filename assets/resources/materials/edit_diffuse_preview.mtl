@@ -5,12 +5,14 @@
   "__editorExtras__": {},
   "_native": "",
   "_effectAsset": {
-    "__uuid__": "2e84fce8-a2d9-474c-8741-9a31532ab3ae",
+    "__uuid__": "1ff4be20-f3df-4dc4-8427-2c665e65a392",
     "__expectedType__": "cc.EffectAsset"
   },
   "_techIdx": 0,
   "_defines": [
-    {}
+    {
+      "SAMPLE_FROM_RT": true
+    }
   ],
   "_states": [
     {
@@ -26,11 +28,6 @@
     }
   ],
   "_props": [
-    {
-      "mainTex": {
-        "__uuid__": "5177f99c-2d7b-4483-8e18-bac65331044b@6c48a",
-        "__expectedType__": "cc.Texture2D"
-      }
-    }
+    {}
   ]
 }

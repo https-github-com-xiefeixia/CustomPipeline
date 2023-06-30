@@ -1,0 +1,183 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      properties: &props
+        mainTex:         { value: white }
+        diffuseContrast:    { value: 1.0 }
+        diffuseBias:    { value: 1.0 }
+        
+        blurTex:         { value: white }
+        blurWeight:    { value: 1.0 }
+        blurContrast:    { value: 1.0 }
+
+        avgTex:         { value: white }
+        
+        lightMaskPow:    { value: 1.0 }
+        lightPow:    { value: 1.0 }
+        
+        darkMaskPow:    { value: 1.0 }
+        darkPow:    { value: 1.0 }
+
+        hotSpot:    { value: 1.0 }
+        darkSpot:    { value: 1.0 }
+
+        finalContrast:    { value: 1.0 }
+        finalBias:    { value: 1.0 }
+        
+        colorLerp:    { value: 1.0 }
+        
+        saturation:    { value: 1.0 }
+        
+        gamaCorrection:    { value: 1.0 }
+
+        slider:    { value: 1.0 }
+
+}%
+
+CCProgram sprite-vs %{
+  precision highp float; 
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <hidden/units>
+  uniform Constant {
+      float diffuseContrast;
+			float diffuseBias;
+			float blurWeight;
+			float blurContrast;
+			float lightMaskPow;
+			float lightPow;
+			float darkMaskPow;
+			float darkPow;
+			float hotSpot;
+			float darkSpot;
+			float finalContrast;
+			float finalBias;
+			float colorLerp;
+			float saturation;
+			float gamaCorrection;
+			float slider;
+  };
+  in vec4 color;
+  in vec2 uv0;
+  uniform  sampler2D mainTex;
+  uniform  sampler2D blurTex;
+  uniform  sampler2D avgTex;
+
+  vec4 frag ()
+	{
+        vec2 UV =  uv0;
+
+				// Texturel lookups
+				vec3 _mainTex = texture(mainTex, UV ).xyz;
+				vec3 _blurTex = texture(blurTex, UV ).xyz;
+				vec3 _avgColor = texture(avgTex, UV ).xyz;
+
+				vec3 mainTexOriginal = _mainTex;
+
+				// overlay
+				vec3 overlay = _mainTex - _blurTex;
+
+				// save original copy
+				vec3 maintexInitialHSL = RGBToHSL( _mainTex.xyz ); 
+
+				// spot removal
+				//float maxLum = max( max( _mainTex.x, _mainTex.y ), _mainTex.z );
+				float avgLum = _mainTex.x * 0.3 + _mainTex.y * 0.5 + _mainTex.z * 0.2;
+				float lightMask = smoothstep( 1.0 - hotSpot, ( 1.0 - hotSpot ) + pow( hotSpot, 0.5 ) + 0.01, avgLum );
+				float darkMask = smoothstep( darkSpot - pow( darkSpot, 0.5 ) - 0.01, darkSpot, avgLum ); // this mask is inverted
+				_mainTex = lerp( _mainTex, _avgColor, 1.0 - ( 1.0 - lightMask ) * darkMask );
+        
+				// Lighting removal
+				float lightMaskPow = saturate( ( lightMaskPow - 0.5 ) * 2.0 ) + 1.0;
+				lightMaskPow -= 1.0 - ( 1.0 / ( saturate( ( lightMaskPow - 0.5 ) * -2.0 ) + 1.0) );
+
+				float darkMaskPow = saturate( ( darkMaskPow - 0.5 ) * 2.0 ) + 1.0;
+				darkMaskPow -= 1.0 - ( 1.0 / ( saturate( ( darkMaskPow - 0.5 ) * -2.0 ) + 1.0) );
+
+				_mainTex = ( _mainTex - _avgColor);//
+				float mainTexGrey = _mainTex.x * 0.3 + _mainTex.y * 0.5 + _mainTex.z * 0.2;
+				float mainTexHighMask = pow( clamp( mainTexGrey * 2.0, 0.001, 0.99 ), lightMaskPow );
+				float mainTexLowMask = pow( clamp( -mainTexGrey * 2.0, 0.001, 0.99 ), darkMaskPow );
+				_mainTex += 0.215;
+
+				//_mainTex = clamp( _mainTex, 0.001, 0.99 );
+				//_mainTex = lerp( _mainTex, pow( _mainTex, lightPow * 5.0 + 1.0 ), mainTexHighMask );
+				//_mainTex = lerp( _mainTex, pow( _mainTex, 1.0 / ( darkPow * 5.0 + 1.0 ) ), mainTexLowMask );
+
+				_mainTex = lerp( _mainTex, _mainTex * ( 1.0 - lightPow ) , mainTexHighMask );
+				_mainTex = lerp( _mainTex, 1.0 - ( 1.0 - _mainTex ) * ( 1.0 - darkPow ), mainTexLowMask );
+
+				float desaturateMask = mainTexHighMask * lightPow;
+				desaturateMask += mainTexLowMask * darkPow * 2.0;
+				desaturateMask += 1.0 - ( 1.0 - lightMask ) * darkMask;
+				desaturateMask = 1.0 - saturate( desaturateMask );
+
+				// apply overlay
+				float overlayMask = 1.0 - ( 1.0 - mainTexHighMask * lightPow ) * ( 1.0 - mainTexLowMask * darkPow );
+				overlayMask = saturate( overlayMask * 2.0 + 0.1 );
+				_mainTex *= lerp( 1.0, overlay * blurContrast * 10.0 + 1.0, overlayMask );
+				_mainTex = saturate( _mainTex );
+
+				// maintain color
+				vec3 maintexHSL = RGBToHSL( saturate( _mainTex.xyz ) );
+				maintexHSL.xy = maintexInitialHSL.xy;
+				vec3  mainTexOriginalColor = HSLToRGB( maintexHSL );
+				_mainTex.xyz = lerp( _mainTex.xyz, mainTexOriginalColor.xyz, colorLerp * desaturateMask );
+  
+				// brightness and contrast
+				_mainTex = saturate( ( _mainTex - 0.5 ) * finalContrast + 0.5 + finalBias );
+
+				// Saturation
+				_mainTex.xyz = lerp( _mainTex.x * 0.3 + _mainTex.y * 0.5 + _mainTex.z * 0.2, _mainTex.xyz, saturation );
+
+				// Slider
+				vec3  finalColor = lerp( mainTexOriginal, _mainTex, smoothstep( slider - 0.01, slider + 0.01, UV.x ) );
+
+				return vec4( finalColor, 1.0 );
+	}
+
+}%

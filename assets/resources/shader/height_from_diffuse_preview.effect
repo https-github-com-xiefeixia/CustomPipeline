@@ -1,0 +1,177 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      properties: &props
+        mainTex:         { value: white }
+        blurTex0:        { value: white }
+        blurTex1:       { value: white }
+        blurTex2:         { value: white }
+        blurTex3:         { value: white }
+        blurTex4:       { value: white }
+        blurTex5:       { value: white }
+        blurTex6:         { value: white }
+
+        avgTex:         { value: white }
+        
+        blurContrast:    { value: 1.0 }
+        blur0Weight:    { value: 1.0 }
+        blur0Contrast:    { value: 1.0 }
+        blur1Weight:    { value: 1.0 } 
+        blur1Contrast:    { value: 1.0 }
+        blur2Weight:    { value: 1.0 }
+        blur2Contrast:    { value: 1.0 }
+        blur3Weight:    { value: 1.0 }
+        blur3Contrast:    { value: 1.0 }
+        blur4Weight:    { value: 1.0 }
+        blur4Contrast:    { value: 1.0 }
+        blur5Weight:    { value: 1.0 }
+        blur5Contrast:    { value: 1.0 }
+        blur6Weight:    { value: 1.0 }
+        blur6Contrast:    { value: 1.0 }
+        finalBias:    { value: 1.0 }
+        finalContrast:    { value: 1.0 }
+        gamaCorrection:    { value: 1.0 }
+			  finalGain:    { value: 1.0 }
+			  slider:    { value: 1.0 }
+			  isNormal:    { value: 1.0 }
+			  isolate:    { value: 1 }
+
+}%
+
+CCProgram sprite-vs %{
+  precision highp float; 
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <hidden/units>
+  uniform Constant {
+      float  blurContrast;
+      float  blur0Weight;
+      float  blur0Contrast;
+      float  blur1Weight;
+      float  blur1Contrast;
+      float  blur2Weight;
+      float  blur2Contrast;
+      float  blur3Weight;
+      float  blur3Contrast;
+      float  blur4Weight;
+      float  blur4Contrast;
+      float  blur5Weight;
+      float  blur5Contrast;
+      float  blur6Weight;
+      float  blur6Contrast;
+      float  finalBias;
+      float  finalContrast;
+      float  gamaCorrection;
+			float  finalGain;
+			float  slider;
+			float  isNormal;
+			int  isolate;
+  };
+  in vec4 color;
+  in vec2 uv0;
+  uniform  sampler2D mainTex;
+  uniform  sampler2D blurTex0;
+  uniform  sampler2D blurTex1;
+  uniform  sampler2D blurTex2;
+  uniform  sampler2D blurTex3;
+  uniform  sampler2D blurTex4;
+  uniform  sampler2D blurTex5;
+  uniform  sampler2D blurTex6;
+  uniform  sampler2D avgTex;
+
+  vec4 frag ()
+	{
+        vec2 UV = uv0;
+
+				vec4 heightTex = vec4(0,0,0,0);
+
+				vec4 mainTex = texture(mainTex, UV);
+				float noBlurTex = 0.0;
+				
+				if (isNormal > 0.5) {
+					heightTex = texture(blurTex0, UV).xxxx;
+				} else {
+					float totalContrast = 7.0 / (blur0Contrast + blur1Contrast + blur2Contrast + blur3Contrast + blur4Contrast + blur5Contrast + blur6Contrast);
+					
+					float avgColor = pow( texture(avgTex, UV).x, 0.45 );
+
+					noBlurTex = texture(blurTex0, UV).x - avgColor + 0.5;
+					 
+					vec4 _blurTex0 = vec4((pow3(texture(blurTex0, UV).xyz, 0.45) - avgColor) * blur0Contrast + 0.5, 1.0) * blur0Weight;
+					vec4 _blurTex1 = vec4((pow3(texture(blurTex1, UV).xyz, 0.45) - avgColor) * blur1Contrast + 0.5, 1.0) * blur1Weight;
+					vec4 _blurTex2 = vec4((pow3(texture(blurTex2, UV).xyz, 0.45) - avgColor) * blur2Contrast + 0.5, 1.0) * blur2Weight;
+					vec4 _blurTex3 = vec4((pow3(texture(blurTex3, UV).xyz, 0.45) - avgColor) * blur3Contrast + 0.5, 1.0) * blur3Weight;
+					vec4 _blurTex4 = vec4((pow3(texture(blurTex4, UV).xyz, 0.45) - avgColor) * blur4Contrast + 0.5, 1.0) * blur4Weight;
+					vec4 _blurTex5 = vec4((pow3(texture(blurTex5, UV).xyz, 0.45) - avgColor) * blur5Contrast + 0.5, 1.0) * blur5Weight;
+					vec4 _blurTex6 = vec4((pow3(texture(blurTex6, UV).xyz, 0.45) - avgColor) * blur6Contrast + 0.5, 1.0) * blur6Weight;
+
+					heightTex = _blurTex0 + _blurTex1 + _blurTex2 + _blurTex3 + _blurTex4 + _blurTex5 + _blurTex6;
+
+					heightTex *= 1.0 / heightTex.w;
+
+				}
+
+				if( isolate > 0){
+					heightTex.xyz = vec3(noBlurTex,noBlurTex,noBlurTex);
+				}else{
+					heightTex.xyz = saturate(((heightTex.xxx - 0.5) * finalContrast) + 0.5 + finalBias);
+					
+					if( heightTex.x > 0.5 ){
+						heightTex.x = pow( saturate( heightTex.x * 2.0 - 1.0 ), finalGain ) * 0.5 + 0.5;
+					}else{
+						heightTex.x = 1.0 - ( pow( saturate( ( 1.0 - heightTex.x ) * 2.0 - 1.0 ), finalGain ) * 0.5 + 0.5 );
+					}
+
+				}
+				
+				
+				vec3 finalColor = lerp( mainTex.xyz, heightTex.xxx, smoothstep( slider - 0.01, slider + 0.01, UV.x ) );
+
+				return vec4( finalColor, 1 );
+	}
+
+}%

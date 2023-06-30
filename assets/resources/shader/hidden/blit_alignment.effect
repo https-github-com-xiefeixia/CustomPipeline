@@ -1,0 +1,147 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag_align
+      properties: &props
+        mainTex:                    { value: white }
+        
+        pointTL:                    { value: [1, 1], target: pointT.xy }
+        pointTR:                    { value: [1, 1], target: pointT.zw }
+        pointBL:                    { value: [1, 1], target: pointB.xy }
+        pointBR:                    { value: [1, 1], target: pointB.zw }
+  
+        perspectiveX:               { value: 0.0, target: perspective.x }
+        perspectiveY:               { value: 0.0, target: perspective.y }
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag_perspective
+      properties: *props
+}%
+
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <units>
+
+  uniform Constants {
+    vec4 pointT;
+    vec4 pointB;
+    vec2 perspective;
+  };
+
+  in vec4 color;
+  in vec2 uv0;
+  uniform sampler2D mainTex; 
+
+ 
+
+  vec4 frag_align ()
+	{
+
+		vec2 UV = uv0;
+		
+		vec2 newUVtop = lerp( pointT.xy, pointT.zw, UV.x );
+		vec2 newUVbot = lerp( pointB.xy, pointB.zw, UV.x );
+		vec2 newUV = lerp( newUVbot, newUVtop, UV.y );
+		
+		vec4 c = texture (mainTex, newUV);
+
+		return vec4( c.xyz, 1 );
+
+	}
+	
+	vec4 frag_perspective ()
+	{
+	
+		vec2 UV = uv0;
+		vec2 newUV1 = uv0;
+		vec2 newUV2 = uv0;
+		
+		float perspectiveX1 = 1.0;
+		if( perspective.x > 0.0 ){
+			perspectiveX1 = 1.0 / ( perspective.x + 1.0 );
+			newUV1.x = 1.0 - pow( 1.0 - newUV1.x, perspectiveX1 );
+		}else{
+			perspectiveX1 = 1.0 / ( abs( perspective.x ) + 1.0 );
+			newUV1.x = pow( newUV1.x, perspectiveX1 );
+		}
+		
+		float perspectiveX2 = 1.0;
+		if( perspective.x > 0.0 ){
+			perspectiveX2 = perspective.x + 1.0;
+			newUV2.x = pow( newUV2.x, perspectiveX2 );
+		}else{
+			perspectiveX2 = abs( perspective.x ) + 1.0;
+			newUV2.x = 1.0 - pow( 1.0 - newUV2.x, perspectiveX2 );
+		}
+		
+		UV.x = lerp( newUV1.x, newUV2.x, 1.0 - uv0.x );
+		
+		float perspectiveY1 = 1.0;
+		if( perspective.y> 0.0 ){
+			perspectiveY1 = 1.0 / ( perspective.y+ 1.0 );
+			UV.y = 1.0 - pow( 1.0 - UV.y, perspectiveY1 );
+		}else{
+			perspectiveY1 = 1.0 / ( abs( perspective.y) + 1.0 );
+			UV.y = pow( UV.y, perspectiveY1 );
+		}
+		
+		float perspectiveY2 = 1.0;
+		if( perspective.y> 0.0 ){
+			perspectiveY2 = 1.0 / ( perspective.y + 1.0 );
+			UV.y = 1.0 - pow( 1.0 - UV.y, perspectiveY2 );
+		}else{
+			perspectiveY2 = 1.0 / ( abs( perspective.y) + 1.0 );
+			UV.y = pow( UV.y, perspectiveY2 );
+		}
+		
+		UV.y = lerp( newUV1.y, newUV2.y, 1.0 - uv0.y );
+
+		vec4 c = texture (mainTex, UV);
+
+		return vec4( c.xyz, 1 );
+
+	}	
+
+}%

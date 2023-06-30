@@ -1,0 +1,114 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      properties: &props
+        mainTex:    { value: white }
+}%
+
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <hidden/units>
+  in vec4 color;
+  in vec2 uv0;
+  uniform sampler2D mainTex;
+
+  vec4 frag ()
+	{
+    vec2 imageSize = vec2(1024, 1024);
+	  vec2 pixelSize = ( 1.0 / imageSize.xy );
+    vec2 UV = uv0;
+
+    int blurSamples = 50;
+    int totalSamples = blurSamples * 2;
+    vec4 _mainTex = vec4(0,0,0,0); 
+    
+    // for 里的i必须是常量！！
+    for (int i = -100; i <= 100; i++ ){
+      if (i < -blurSamples ){
+          continue;
+      }else if (i > blurSamples){
+          break;
+      }
+
+      float weight = cos( ( float(i) / float( totalSamples ) ) * 6.28318530718 ) * 0.5 + 0.5;
+      vec2 uv = UV.xy + pixelSize.xy * vec2(1, 0) * float(i * 1);
+      vec4 sampleTex = texture(mainTex, uv);
+
+      sampleTex = vec4( sampleTex.xyz * weight, weight );
+      _mainTex += sampleTex;
+    }
+
+    _mainTex.xyz *= 1.0 / _mainTex.w ;
+
+    vec4 mT = vec4(_mainTex.xyz, 1.0);
+    _mainTex = vec4(0,0,0,0);
+
+    for (int i = -100; i <= 100; i++ ){
+      if (i < -blurSamples ){
+          continue;
+      }else if (i > blurSamples){
+          break;
+      }
+
+      float weight = cos( ( float(i) / float( totalSamples ) ) * 6.28318530718 ) * 0.5 + 0.5;
+      vec2 uv = UV.xy + pixelSize.xy * vec2(0, 1) * float(i * 1);
+      vec4 sampleTex = mT; // 这里需要取改变后的uv 而不是原来的值，暂时只是做测试使用 因为没办法blit
+
+      sampleTex = vec4( sampleTex.xyz * weight, weight );
+      _mainTex += sampleTex;
+    }
+  
+    _mainTex.xyz *= 1.0 / _mainTex.w ; 
+    
+    _mainTex.xyz = saturate( ( ( _mainTex.xyz - 0.5 ) * 1.0 ) + 0.5 ); 
+    
+    return vec4( _mainTex.xyz, 1.0 );
+	}
+
+}%

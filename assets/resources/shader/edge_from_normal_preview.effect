@@ -1,0 +1,178 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      properties: &props
+        mainTex:         { value: white }
+        blurTex0:        { value: white }
+        blurTex1:       { value: white }
+        blurTex2:         { value: white }
+        blurTex3:         { value: white }
+        blurTex4:       { value: white }
+        blurTex5:       { value: white }
+        blurTex6:         { value: white }
+        
+        blurContrast:    { value: 1.0 }
+        blur0Weight:    { value: 1.0 }
+        blur0Contrast:    { value: 1.0 }
+        blur1Weight:    { value: 1.0 } 
+        blur1Contrast:    { value: 1.0 }
+        blur2Weight:    { value: 1.0 }
+        blur2Contrast:    { value: 1.0 }
+        blur3Weight:    { value: 1.0 }
+        blur3Contrast:    { value: 1.0 }
+        blur4Weight:    { value: 1.0 }
+        blur4Contrast:    { value: 1.0 }
+        blur5Weight:    { value: 1.0 }
+        blur5Contrast:    { value: 1.0 }
+        blur6Weight:    { value: 1.0 }
+        blur6Contrast:    { value: 1.0 }
+        finalBias:    { value: 1.0 }
+        finalContrast:    { value: 1.0 }
+        pinch:    { value: 1.0 }
+        pillow:    { value: 1.0 }
+        edgeAmount:    { value: 1.0 }
+        creviceAmount:    { value: 1.0 }
+        gamaCorrection:    { value: 1.0 }
+
+}%
+
+CCProgram sprite-vs %{
+  precision highp float; 
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <hidden/units>
+  uniform Constant {
+        float blurContrast;
+        float blur0Weight;
+        float blur0Contrast;
+        float blur1Weight;
+        float blur1Contrast;
+        float blur2Weight;
+        float blur2Contrast;
+        float blur3Weight;
+        float blur3Contrast;
+        float blur4Weight;
+        float blur4Contrast;
+        float blur5Weight;
+        float blur5Contrast;
+        float blur6Weight;
+        float blur6Contrast;
+        float finalBias;
+        float finalContrast;
+        float pinch;
+        float pillow;
+        float edgeAmount;
+        float creviceAmount;
+        float gamaCorrection;
+  };
+  in vec4 color;
+  in vec2 uv0;
+  uniform  sampler2D mainTex;
+  uniform  sampler2D blurTex0;
+  uniform  sampler2D blurTex1;
+  uniform  sampler2D blurTex2;
+  uniform  sampler2D blurTex3;
+  uniform  sampler2D blurTex4;
+  uniform  sampler2D blurTex5;
+  uniform  sampler2D blurTex6;    
+
+  vec4 frag ()
+	{
+     vec2 UV = uv0;
+
+    vec4 _mainTex = texture(mainTex, UV );
+    vec4 _blurTex1 = texture(blurTex1, UV );
+    vec4 _blurTex2 = texture(blurTex2, UV );
+    vec4 _blurTex3 = texture(blurTex3, UV );
+    vec4 _blurTex4 = texture(blurTex4, UV );
+    vec4 _blurTex5 = texture(blurTex5, UV );
+    vec4 _blurTex6 = texture(blurTex6, UV );
+    
+    _mainTex.w = 1.0;
+    _blurTex1.w = 1.0;
+    _blurTex2.w = 1.0;
+    _blurTex3.w = 1.0;
+    _blurTex4.w = 1.0;
+    _blurTex5.w = 1.0;
+    _blurTex6.w = 1.0;
+    
+    //Put these on slider?
+    
+    _mainTex *= blur0Weight;
+    _blurTex1 *= blur1Weight;
+    _blurTex2 *= blur2Weight;
+    _blurTex3 *= blur3Weight;
+    _blurTex4 *= blur4Weight;
+    _blurTex5 *= blur5Weight;
+    _blurTex6 *= blur6Weight;
+    
+    _mainTex = _mainTex + _blurTex1 + _blurTex2 + _blurTex3 + _blurTex4 + _blurTex5 + _blurTex6;
+    
+    _mainTex *= 1.0 / _mainTex.w;
+    
+    if( _mainTex.x > 0.5 ){
+      _mainTex.x = max( _mainTex.x * 2.0 - 1.0, 0.0 );
+      _mainTex.x = pow( _mainTex.x, pinch );
+      _mainTex.x *= edgeAmount;
+      _mainTex.x = _mainTex.x * 0.5 + 0.5;
+    }else{
+      _mainTex.x = max( -( _mainTex.x * 2.0 - 1.0 ), 0.0 );
+      _mainTex.x = pow( _mainTex.x, pinch );
+      _mainTex.x *= creviceAmount;
+      _mainTex.x = -_mainTex.x * 0.5 + 0.5;
+    }
+    
+    _mainTex.x = ( ( _mainTex.x - 0.5 ) * finalContrast ) + 0.5;
+    
+    _mainTex.x = pow( _mainTex.x, pillow );
+    
+    _mainTex.x = saturate( _mainTex.x + finalBias );
+
+    return vec4( _mainTex.xxx, 1 );
+	}
+
+}%

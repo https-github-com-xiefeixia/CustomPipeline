@@ -1,0 +1,227 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragSmoothness
+      properties: &props
+        mainTex:                  { value: grey }
+        blurTex:                  { value: grey }
+        overlayBlurTex:           { value: grey }
+        metallicTex:              { value: grey }
+
+        sampleColor1:            { value: [1, 1, 1, 1],  linear: true, editor: { type: color } }
+        sampleUV1:               { value: [0, 0] }  
+        sampleColor2:            { value: [1, 1, 1, 1],  linear: true, editor: { type: color } }
+        sampleUV2:               { value: [0, 0] }  
+        sampleColor3:            { value: [1, 1, 1, 1],  linear: true, editor: { type: color } }
+        sampleUV3:               { value: [0, 0] }  
+
+        metalSmoothness:         { value: 0.0 }
+
+        useSample1:             { value: 0 }
+        isolateSample1:         { value: 0 }
+        hueWeight1:             { value: 1.0 }
+        satWeight1:             { value: 1.0 }
+        lumWeight1:             { value: 0.0 }
+        maskLow1:               { value: 0.0 }
+        maskHigh1:              { value: 1.0 }
+        sample1Smoothness:      { value: 0.0 }
+
+        useSample2:             { value: 0 }
+        isolateSample2:         { value: 0 }
+        hueWeight2:             { value: 1.0 }
+        satWeight2:             { value: 1.0 }
+        lumWeight2:             { value: 0.0 }
+        maskLow2:               { value: 0.0 }
+        maskHigh2:              { value: 1.0 }
+        sample2Smoothness:      { value: 0.0 }
+
+        useSample3:             { value: 0 }
+        isolateSample3:         { value: 0 }
+        hueWeight3:             { value: 1.0 }
+        satWeight3:             { value: 1.0 }
+        lumWeight3:             { value: 0.0 }
+        maskLow3:               { value: 0.0 }
+        maskHigh3:              { value: 1.0 }
+        sample3Smoothness:      { value: 0.0 }
+        baseSmoothness:         { value: 0.0 }
+			  blurOverlay:            { value: 0.0 }
+
+        finalContrast:          { value: 0.0 }
+			  finalBias:              { value: 0.0 }
+        slider:                 { value: 0.0 }
+			  gamaCorrection:         { value: 0.0 }
+			  invert:                 { value: 0 }
+			
+}%  
+
+
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <units>
+  uniform Constants {
+      vec4 sampleColor1;
+      vec4  sampleColor2;
+      vec4  sampleColor3;
+      vec2 sampleUV1;
+      vec2  sampleUV2;
+      vec2  sampleUV3;
+
+      float  metalSmoothness;
+
+      int  useSample1;
+      int  isolateSample1;
+      float   hueWeight1;
+      float satWeight1;
+      float   lumWeight1;
+      float   maskLow1;
+      float   maskHigh1;
+      float   sample1Smoothness;
+
+      int  useSample2;
+      int   isolateSample2;
+      float   hueWeight2;
+      float  satWeight2;
+      float    lumWeight2;
+      float   maskLow2;
+      float  maskHigh2;
+      float  sample2Smoothness;
+
+      int   useSample3;
+      int  isolateSample3;
+      float  hueWeight3;
+      float  satWeight3;
+      float  lumWeight3;
+      float  maskLow3;
+      float   maskHigh3;
+      float  sample3Smoothness;
+
+      float  baseSmoothness;
+			float  blurOverlay;
+		 	float  finalContrast;
+			float  finalBias;
+		 	float  slider;
+			float  gamaCorrection;
+			int  invert;
+  };
+
+  in vec4 color;
+  in vec2 uv0;
+  uniform sampler2D mainTex; 
+  uniform sampler2D blurTex; 
+  uniform sampler2D overlayBlurTex; 
+  uniform sampler2D metallicTex; 
+
+ // 定义片段着色器
+    vec4 fragSmoothness () {
+        vec2 UV = uv0;
+
+				vec3 _mainTex = texture( mainTex, UV ).xyz;
+				vec3 _blurTex = texture( blurTex, UV ).xyz;
+				vec3 _overlayBlurTex = texture( overlayBlurTex, UV ).xyz;
+				
+				vec3 overlay = ( _mainTex - _overlayBlurTex );
+				float overlayGrey = overlay.x * 0.3 + overlay.y * 0.5 + overlay.z * 0.2;
+				
+				float metalMask = texture( metallicTex, UV ).x;
+				
+				vec3 mainTexHSL = RGBToHSL( _mainTex.xyz );
+				vec3 blurTexHSL = RGBToHSL( _blurTex.xyz );
+				
+				float sample1Mask = 0.0;
+				if( useSample1 != 0){
+					vec3 sample1HSL = RGBToHSL( sampleColor1.xyz );
+					float sample1HueDif = 1.0 - min( min( abs( blurTexHSL.x - sample1HSL.x ), abs( ( blurTexHSL.x + 1.0 ) - sample1HSL.x ) ), abs( ( blurTexHSL.x - 1.0 ) - sample1HSL.x ) ) * 2.0;
+					float sample1SatDif = 1.0 - abs( blurTexHSL.y - sample1HSL.y );
+					float sample1LumDif = 1.0 - abs( blurTexHSL.z - sample1HSL.z );
+					sample1Mask = ( sample1HueDif * hueWeight1 ) + ( sample1SatDif * satWeight1 ) + ( sample1LumDif * lumWeight1 );
+					sample1Mask *= 1.0 / ( hueWeight1 + satWeight1 + lumWeight1 );
+					sample1Mask = smoothstep( maskLow1, maskHigh1, sample1Mask );
+				}
+				
+				float sample2Mask = 0.0;
+				if( useSample1 != 0 ){
+					vec3 sample2HSL = RGBToHSL( sampleColor2.xyz );
+					float sample2HueDif = 1.0 - min( min( abs( blurTexHSL.x - sample2HSL.x ), abs( ( blurTexHSL.x + 1.0 ) - sample2HSL.x ) ), abs( ( blurTexHSL.x - 1.0 ) - sample2HSL.x ) ) * 2.0;
+					float sample2SatDif = 1.0 - abs( blurTexHSL.y - sample2HSL.y );
+					float sample2LumDif = 1.0 - abs( blurTexHSL.z - sample2HSL.z );
+					sample2Mask = ( sample2HueDif * hueWeight2 ) + ( sample2SatDif * satWeight2 ) + ( sample2LumDif * lumWeight2 );
+					sample2Mask *= 1.0 / ( hueWeight2 + satWeight2 + lumWeight2 );
+					sample2Mask = smoothstep( maskLow2, maskHigh2, sample2Mask );
+				}
+
+				
+				float finalSmoothness = baseSmoothness;
+				finalSmoothness = lerp( finalSmoothness, sample2Smoothness, sample2Mask );
+				finalSmoothness = lerp( finalSmoothness, sample1Smoothness, sample1Mask );
+				finalSmoothness = lerp( finalSmoothness, metalSmoothness, metalMask );
+				
+				finalSmoothness *= clamp( overlayGrey * blurOverlay + 1.0, 0.0, 10.0 );
+
+				if (invert == 1) {
+					finalSmoothness = saturate((finalSmoothness - 0.5) * ((finalContrast + 0.5) + finalBias) *-1.0);
+				}
+				else {
+					finalSmoothness = saturate((finalSmoothness - 0.5) * finalContrast + 0.5 + finalBias);
+				}
+				finalSmoothness = saturate( finalSmoothness  );
+				
+				if( isolateSample1 == 1 ){
+					finalSmoothness = sample1Mask;
+				}
+				
+				if( isolateSample2 == 1 ){
+					finalSmoothness = sample2Mask;
+				}
+				vec3 finalColor;
+				
+				finalColor = lerp(_mainTex.xyz, vec3(finalSmoothness, finalSmoothness, finalSmoothness), smoothstep(slider - 0.01, slider + 0.01, UV.x));
+
+				return vec4( finalColor , 1 );
+    }
+
+}%

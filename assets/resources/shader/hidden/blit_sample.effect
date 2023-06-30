@@ -1,0 +1,169 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      properties:
+        mainTex:                    { value: white }
+        sampleColor1:               { value: [1, 1, 1, 1],  linear: true, editor: { type: color } }
+        sampleColor2:               { value: [1, 1, 1, 1],  linear: true, editor: { type: color } }
+        useSample1:                 { value: 0, editor:  { slide: true, range: [0, 1], step: 1 } }    
+        isolateSample1:             { value: 0, editor:  { slide: true, range: [0, 1], step: 1 } }
+        hueWeight1:                 { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        satWeight1:                 { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        lumWeight1:                 { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        maskLow1:                   { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        maskHigh1:                  { value: 1.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        sample1Height:              { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        useSample2:                 { value: 0, editor:  { slide: true, range: [0, 1], step: 1 } }    
+        isolateSample2:             { value: 0, editor:  { slide: true, range: [0, 1], step: 1 } }
+        hueWeight2:                 { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        satWeight2:                 { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        lumWeight2:                 { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        maskLow2:                   { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        maskHigh2:                  { value: 1.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        sample2Height:              { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        sampleBlend:                { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        finalContrast:              { value: 1.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        finalBias:                  { value: 0.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        gamaCorrection:             { value: 1.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+      depthStencilState:
+        depthTest: false
+        depthWrite: false  
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: oneminussrc_alpha
+          blendDstAlpha: oneminussrc_alpha
+      rasterizerState:
+        cullMode: none 
+}%
+
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <units>
+  uniform Constants {
+    vec4 sampleColor1;
+    vec4 sampleColor2;
+    int  useSample1;
+    int  isolateSample1;
+    float hueWeight1;
+    float satWeight1;
+    float lumWeight1;
+    float maskLow1;
+    float maskHigh1;
+    float sample1Height;
+    int  useSample2;
+    int  isolateSample2;
+    float hueWeight2;
+    float satWeight2;
+    float lumWeight2;
+    float maskLow2;
+    float maskHigh2;
+    float sample2Height;
+    float sampleBlend; 
+    float finalContrast;
+    float finalBias;
+    float gamaCorrection;
+  };
+
+  in vec4 color;
+  in vec2 uv0;
+  uniform sampler2D mainTex; 
+
+ // 定义片段着色器
+    vec4 frag () {
+        vec3 mainTex = texture(mainTex, uv0).rgb;
+
+        float mainTexGrey = dot(mainTex, vec3(0.3, 0.5, 0.2));
+
+        vec3 mainTexHSL = RGBToHSL(mainTex);
+
+        float sample1Mask = 0.0;
+        if (useSample1 != 0) {
+            vec3 sample1HSL = RGBToHSL(sampleColor1.rgb);
+            float sample1HueDif = 1.0 - min(min(abs(mainTexHSL.x - sample1HSL.x), abs((mainTexHSL.x + 1.0) - sample1HSL.x)), abs((mainTexHSL.x - 1.0) - sample1HSL.x)) * 2.0;
+            float sample1SatDif = 1.0 - abs(mainTexHSL.y - sample1HSL.y);
+            float sample1LumDif = 1.0 - abs(mainTexHSL.z - sample1HSL.z);
+            sample1Mask = (sample1HueDif * hueWeight1) + (sample1SatDif * satWeight1) + (sample1LumDif * lumWeight1);
+            sample1Mask *= 1.0 / (hueWeight1 + satWeight1 + lumWeight1);
+            sample1Mask = smoothstep(maskLow1, maskHigh1, sample1Mask);
+        }
+
+        float sample2Mask = 0.0;
+        if (useSample2 != 0) {
+            vec3 sample2HSL = RGBToHSL(sampleColor2.rgb);
+            float sample2HueDif = 1.0 - min(min(abs(mainTexHSL.x - sample2HSL.x), abs((mainTexHSL.x + 1.0) - sample2HSL.x)), abs((mainTexHSL.x - 1.0) - sample2HSL.x)) * 2.0;
+            float sample2SatDif = 1.0 - abs(mainTexHSL.y - sample2HSL.y);
+            float sample2LumDif = 1.0 - abs(mainTexHSL.z - sample2HSL.z);
+            sample2Mask = (sample2HueDif * hueWeight2) + (sample2SatDif * satWeight2) + (sample2LumDif * lumWeight2);
+            sample2Mask *= 1.0 / (hueWeight2 + satWeight2 + lumWeight2);
+            sample2Mask = smoothstep(maskLow2, maskHigh2, sample2Mask);
+        }
+
+        float finalHeight = mainTexGrey;
+
+        if (useSample2 != 0) {
+            finalHeight = mix(finalHeight, sample2Height, sample2Mask * sampleBlend);
+        }
+        if (useSample1 != 0) {
+            finalHeight = mix(finalHeight, sample1Height, sample1Mask * sampleBlend);
+        }
+
+        finalHeight = saturate(finalHeight);  
+
+        if (isolateSample1 != 0) {
+            finalHeight = sample1Mask;
+        }
+
+        if (isolateSample2 != 0) {
+            finalHeight = sample2Mask;
+        }
+
+        return vec4(pow(finalHeight, gamaCorrection), 0.0, 0.0, 1.0);
+    }
+
+}%

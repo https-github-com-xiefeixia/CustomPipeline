@@ -1,0 +1,507 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragDesaturate
+      properties: &props
+        mainTex:                    { value: white }
+        heightTex:                  { value: white }
+        lightTex:                   { value: white }
+        lightBlurTex:               { value: white }
+        diffuseTex:                 { value: white }
+        blurScale:                  { value: 0, editor:  { slide: true, range: [0, 1], step: 0.001 } }    
+        imageSize:                  { value: [1, 1, 1, 1] }
+        gamaCorrection:             { value: 1.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } }
+        blurDirection:              { value: [1.0, 1.0, 1.0, 1.0]}
+        blurSamples:                { value: 20.0, editor:  { slide: true, range: [0, 100], step: 1 } }  #int
+        blurSpread:                 { value: 1.0, editor:  { slide: true, range: [0, 10], step: 1 } }  #int
+        blurTex0:                   { value: white }
+        blurTex1:                   { value: white } 
+        blurTex2:                   { value: white }
+        blurTex3:                   { value: white }
+        blurTex4:                   { value: white }
+        blurTex5:                   { value: white }
+        blurTex6:                   { value: white }
+
+        contrast:                   { value: 1.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blurContrast:               { value: 1.0, editor:  { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur0Weight:                { value: 0.15, editor:  { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur0Contrast:              { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur1Weight:                { value: 0.19, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur1Contrast:              { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur2Weight:                { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur2Contrast:              { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur3Weight:                { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur3Contrast:              { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur4Weight:                { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur4Contrast:              { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur5Weight:                { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur5Contrast:              { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur6Weight:                { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blur6Contrast:              { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        pinch:                      { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        pillow:                     { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        edgeAmount:                  { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        creviceAmount:               { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        isColor:                     { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        spread:                     { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        depth:                    { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        aoBlend:                     { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blendTex:                   { value: white } 
+        blendAmount:                { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        diffuseContrast:               { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        diffuseBias:                { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        blurTex:                    { value: white } 
+        blurWeight:               { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        avgTex:                  { value: white } 
+        lightMaskPow:               { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        lightPow:                  { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        darkMaskPow:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        darkPow:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        hotSpot:           { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        darkSpot:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        finalContrast:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        finalBias:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        finalGain:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        angularIntensity:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        angularity:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        colorLerp:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        saturation:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        shapeRecognition:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        lightRotation:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        shapeBias:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        flipNormalY:            { value: 0.0, editor: { slide: true, range: [0, 1], step: 1 } } 
+        heightFromNormal:            { value: 1.0, editor: { slide: true, range: [0, 1.0], step: 0.001 } } 
+        desaturate:            { value: 0.0, editor: { slide: true, range: [0, 1], step: 1 } }
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragBlur
+      properties: *props
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragCombineHeight
+      properties: *props
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragNormal
+      properties: *props    
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragCombineNormal
+      properties: *props   
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragEdge
+      properties: *props               
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragCombineEdge
+      properties: *props   
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragAO
+      properties: *props   
+}%
+
+CCProgram sprite-vs %{
+  precision highp float;
+      #include <common/common-define>
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+  
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <units>
+  
+  in vec4 color;
+  in vec2 uv0;
+  uniform sampler2D mainTex; 
+  uniform sampler2D heightTex; 
+  uniform sampler2D lightTex; 
+  uniform sampler2D lightBlurTex;
+  uniform sampler2D diffuseTex;
+  uniform sampler2D blurTex0;
+  uniform sampler2D blurTex1;
+  uniform sampler2D blurTex2;
+  uniform sampler2D blurTex3;
+  uniform sampler2D blurTex4;
+  uniform sampler2D blurTex5;
+  uniform sampler2D blurTex6;
+  uniform sampler2D blendTex;
+  uniform sampler2D blurTex;
+  uniform sampler2D avgTex;
+
+  uniform Constants {
+      vec4   imageSize;
+      vec4   blurDirection;
+      float  gamaCorrection;
+      float  blurScale;
+      float  blurSamples;
+      float  blurSpread;
+      float  contrast;
+      float  blurContrast;
+      float  blur0Weight;
+      float  blur0Contrast;
+      float  blur1Weight;
+      float  blur1Contrast;
+      float  blur2Weight;
+      float  blur2Contrast; 
+      float  blur3Weight;
+      float  blur3Contrast;
+      float  blur4Weight;
+      float  blur4Contrast;
+      float  blur5Weight;
+      float  blur5Contrast;
+      float  blur6Weight;
+      float  blur6Contrast;
+      float  pinch;
+      float  pillow;
+      float  edgeAmount;
+      float  creviceAmount;
+      float  isColor;
+      float  spread;
+      float  depth; 
+      float  aoBlend;
+      float  blendAmount;
+      float  diffuseContrast;
+      float  diffuseBias;
+      float  blurWeight;
+      float  lightMaskPow;
+      float  lightPow;
+      float  darkMaskPow;
+      float  darkPow;
+      float  hotSpot;
+      float  darkSpot;
+      float  finalContrast;
+      float  finalBias;
+      float  finalGain;
+      float  angularIntensity;
+      float  angularity;
+      float  colorLerp;
+      float  saturation; 
+      float  shapeRecognition;
+      float  lightRotation;
+      float  shapeBias;
+      float  flipNormalY;
+      float  heightFromNormal;
+      float  desaturate;
+   
+    };
+
+  	vec4 fragDesaturate ()
+    { 
+      // textureLod
+        vec4 mainTex = texture(mainTex, uv0);
+        mainTex.x = mainTex.x * 0.3 + mainTex.y * 0.5 + mainTex.z * 0.2;
+        
+        return vec4( mainTex.xxx, 1.0 );
+    }
+
+    vec4 fragBlur () 
+    {
+      vec2 pixelSize = ( 1.0 / imageSize.xy ); 
+      vec2 UV = uv0;
+      int totalSamples = int(blurSamples) * 2; // 传递有问题！int 变量传递参数有问题！！！！！！！ todo
+      vec4 _mainTex = vec4(0,0,0,0); 
+      
+      // for 里的i必须是常量！！
+      for (int i = -100; i <= 100; i++ ){
+        if (i < -int(blurSamples)){
+           continue;
+        }else if (i > int(blurSamples)){
+            break;
+        }
+
+        float weight = cos( ( float(i) / float( totalSamples ) ) * 6.28318530718 ) * 0.5 + 0.5;
+        vec2 uv = UV.xy + pixelSize.xy * blurDirection.xy * float(i * int(blurSpread) );
+        vec4 sampleTex = texture(mainTex, uv);
+        if(desaturate > 0.0 ){
+          sampleTex.xyz = vec3(sampleTex.x * 0.3 , sampleTex.y * 0.5 , sampleTex.z * 0.2);
+        }
+        sampleTex = vec4( sampleTex.xyz * weight, weight );
+        _mainTex += sampleTex;
+      }
+		
+      _mainTex.xyz *= 1.0 / _mainTex.w; 
+      
+      _mainTex.xyz = saturate( ( ( _mainTex.xyz - 0.5 ) * blurContrast ) + 0.5 ); 
+      
+      return vec4( _mainTex.xyz, 1.0 );
+
+      //  return vec4( 0, 0, 0 ,1.0 );
+	  }
+
+  vec4 fragCombineHeight () 
+	{
+		vec2 UV = uv0;
+
+		vec4 heightTex = vec4(0, 0, 0, 0);
+		
+		if (heightFromNormal > 0.5) {
+			heightTex = texture(mainTex, UV).xxxx;
+		} else {
+			float avgColor = pow(texture(avgTex,UV).x, 0.45 );
+
+			heightTex = vec4((pow3(texture(blurTex0, UV).xyz, 0.45) - avgColor) * blur0Contrast + 0.5, 1.0) * blur0Weight;
+			vec4 blurTex1 = vec4((pow3(texture(blurTex1, UV).xyz, 0.45) - avgColor) * blur1Contrast + 0.5, 1.0) * blur1Weight;
+			vec4 blurTex2 = vec4((pow3(texture(blurTex2, UV).xyz, 0.45) - avgColor) * blur2Contrast + 0.5, 1.0) * blur2Weight;
+			vec4 blurTex3 = vec4((pow3(texture(blurTex3, UV).xyz, 0.45) - avgColor) * blur3Contrast + 0.5, 1.0) * blur3Weight;
+			vec4 blurTex4 = vec4((pow3(texture(blurTex4, UV).xyz, 0.45) - avgColor) * blur4Contrast + 0.5, 1.0) * blur4Weight;
+			vec4 blurTex5 = vec4((pow3(texture(blurTex5, UV).xyz, 0.45) - avgColor) * blur5Contrast + 0.5, 1.0) * blur5Weight;
+			vec4 blurTex6 = vec4((pow3(texture(blurTex6, UV).xyz, 0.45) - avgColor) * blur6Contrast + 0.5, 1.0) * blur6Weight;
+
+			heightTex = heightTex + blurTex1 + blurTex2 + blurTex3 + blurTex4 + blurTex5 + blurTex6;
+
+			heightTex *= 1.0 / heightTex.w;
+		}
+		
+		heightTex.x = saturate(((heightTex.x - 0.5) * finalContrast) + 0.5 + finalBias);
+					
+		heightTex.x = saturate( heightTex.x );
+		
+		if( heightTex.x > 0.5 ){
+			heightTex.x = pow( saturate( heightTex.x * 2.0 - 1.0 ), finalGain ) * 0.5 + 0.5;
+		}else{
+			heightTex.x = 1.0 - ( pow( saturate( ( 1.0 - heightTex.x ) * 2.0 - 1.0 ), finalGain ) * 0.5 + 0.5 );
+		}
+		
+		
+		return vec4( heightTex.xxx, 1.0 );
+	}
+
+  vec4 fragNormal ()
+	{
+		vec2 UV = uv0;
+		vec2 pixelSize = 1.0 / imageSize.xy;
+		vec4 _mainTex = texture(mainTex, UV);
+		vec4 mainTexDDX = texture(mainTex, vec2(UV.x + pixelSize.x, UV.y));
+		vec4 mainTexDDY = texture(mainTex,  vec2(UV.x, UV.y + pixelSize.y));
+		
+		mainTexDDX = mainTexDDX - _mainTex;
+		mainTexDDY = mainTexDDY - _mainTex;
+		
+		vec3 normalTex = normalize( cross( normalize( vec3( 1.0, 0.0, mainTexDDX.x * blurContrast ) ), normalize( vec3( 0.0, 1.0, mainTexDDY.x * blurContrast ) ) ) );
+		
+		vec3 heightTex = texture(lightTex, UV).xyz;
+		vec3 heightBlurTex = texture(lightBlurTex, UV ).xyz;
+		if( desaturate > 0.0 ){
+			heightTex.x = heightTex.x * 0.3 + heightTex.y * 0.5 + heightTex.z * 0.2;
+		}
+		float HPHeight = ( heightTex.x - heightBlurTex.x ) + shapeBias;
+		HPHeight = HPHeight * 2.0 - 1.0;
+		
+		vec3 lightDirection = vec3( sin( lightRotation ), cos( lightRotation ), 0 );
+		vec3 lightCrossDirection = cross( lightDirection, vec3(0,0,1) );
+		vec3 shape = ( HPHeight * lightDirection ) + ( dot( normalTex, lightCrossDirection ) * lightCrossDirection );
+		shape.z = sqrt( 1.0 - saturate( dot(shape.xy, shape.xy ) ) );
+		shape = normalize( shape );
+
+		normalTex = normalize( lerp( normalTex, shape, shapeRecognition ) );
+
+		normalTex = normalTex * 0.5 + 0.5;
+
+		return vec4( normalTex, 1.0 );
+	}
+
+	vec4 fragCombineNormal ()
+	{
+		vec2 UV = uv0;
+
+		vec4 mainTex = vec4( texture(blurTex0, UV ).xyz, 1.0 ) * blur0Weight;
+		vec4 blurTex1 = vec4( texture(blurTex1, UV ).xyz, 1.0 ) * blur1Weight;
+		vec4 blurTex2 = vec4( texture(blurTex2, UV ).xyz, 1.0 ) * blur2Weight;
+		vec4 blurTex3 = vec4( texture(blurTex3, UV ).xyz, 1.0 ) * blur3Weight;
+		vec4 blurTex4 = vec4( texture(blurTex4, UV ).xyz, 1.0 ) * blur4Weight;
+		vec4 blurTex5 = vec4( texture(blurTex5, UV ).xyz, 1.0 ) * blur5Weight;
+		vec4 blurTex6 = vec4( texture(blurTex6, UV ).xyz, 1.0 ) * blur6Weight;
+		
+		mainTex = mainTex + blurTex1 + blurTex2 + blurTex3 + blurTex4 + blurTex5 + blurTex6;
+		
+		mainTex *= 1.0 / mainTex.w;
+		
+		mainTex.xyz = normalize( mainTex.xyz * 2.0 - 1.0 );
+
+		vec3 angularDir = normalize( vec3( normalize( vec3( mainTex.xy, 0.001 ) ).xy * angularIntensity, max( 1.0 - angularIntensity, 0.001 ) ) );
+		mainTex.xyz = lerp( mainTex.xyz, angularDir, angularity );
+		
+		mainTex.xy = mainTex.xy * finalContrast;
+		mainTex.z = pow( saturate( mainTex.z ), finalContrast );
+		
+		mainTex.xyz = normalize( mainTex.xyz ) * 0.5 + 0.5;
+		
+		if( flipNormalY < 1.0 ){
+			mainTex.y = 1.0 - mainTex.y;
+		}
+		
+		return vec4( mainTex.xyz, 1.0 );
+	}
+
+  vec4 fragEdge ()
+	{
+
+		vec2 pixelSize = ( 1.0 / imageSize.xy ) * 0.5;
+		
+		vec2 UV = uv0;
+
+		vec4 _mainTex = texture(mainTex, UV);
+		
+		vec4 mainTexX = texture(mainTex, vec2( UV.x + pixelSize.x, UV.y ) ) * 2.0 - 1.0;
+		vec4 mainTexX2 = texture(mainTex, vec2( UV.x - pixelSize.x, UV.y ) ) * 2.0 - 1.0;
+		
+		vec4 mainTexY = texture(mainTex, vec2( UV.x, UV.y + pixelSize.y ) ) * 2.0 - 1.0;
+		vec4 mainTexY2 = texture(mainTex, vec2( UV.x, UV.y - pixelSize.y ) ) * 2.0 - 1.0;
+		
+		float diffX = ( mainTexX.x - mainTexX2.x ) * blurContrast;
+		float diffY = ( mainTexY.y - mainTexY2.y ) * blurContrast;
+		
+		if( flipNormalY < 1.0  ){
+			diffY *= -1.0;
+		}
+
+		float diff = ( diffX + 0.5 ) * ( diffY + 0.5 ) * 2.0;
+		
+		return vec4( diff, diff, diff, 1.0);
+	}
+
+
+	vec4 fragCombineEdge () 
+	{
+		vec2 UV = uv0;
+
+		vec4 _mainTex = vec4( texture(mainTex, UV ).xyz, 1.0 ) * blur0Weight;
+		vec4 blurTex1 = vec4( texture(blurTex1, UV ).xyz, 1.0 ) * blur1Weight;
+		vec4 blurTex2 = vec4( texture(blurTex2, UV ).xyz, 1.0 ) * blur2Weight;
+		vec4 blurTex3 = vec4( texture(blurTex3, UV ).xyz, 1.0 ) * blur3Weight;
+		vec4 blurTex4 = vec4( texture(blurTex4, UV ).xyz, 1.0 ) * blur4Weight;
+		vec4 blurTex5 = vec4( texture(blurTex5, UV ).xyz, 1.0 ) * blur5Weight;
+		vec4 blurTex6 = vec4( texture(blurTex6, UV ).xyz, 1.0 ) * blur6Weight;
+		
+		_mainTex = _mainTex + blurTex1 + blurTex2 + blurTex3 + blurTex4 + blurTex5 + blurTex6;
+		
+		_mainTex *= 1.0 / _mainTex.w;
+		
+		if( _mainTex.x > 0.5 ){
+			_mainTex.x = max( _mainTex.x * 2.0 - 1.0, 0.0 );
+			_mainTex.x = pow( _mainTex.x, pinch );
+			_mainTex.x *= edgeAmount;
+			_mainTex.x = _mainTex.x * 0.5 + 0.5;
+		}else{
+			_mainTex.x = max( -( _mainTex.x * 2.0 - 1.0 ), 0.0 );
+			_mainTex.x = pow( _mainTex.x, pinch );
+			_mainTex.x *= creviceAmount;
+			_mainTex.x = -_mainTex.x * 0.5 + 0.5;
+		}
+		
+		
+		_mainTex.x = ( ( _mainTex.x - 0.5 ) * finalContrast ) + 0.5;
+				
+		_mainTex.x = pow( _mainTex.x, pillow );
+				
+		_mainTex.x = saturate( _mainTex.x + finalBias );
+		
+		return vec4( _mainTex.xxx, 1.0 );
+	}
+
+	float _Progress;
+	
+	vec4 fragAO () 
+	{
+	
+		vec2 pixelSize = ( 1.0 / imageSize.xy );
+		vec2 UV = uv0;
+
+		vec3 flipTex = vec3(1,1,1);
+		if( flipNormalY < 1.0  ){
+			flipTex = vec3(1,-1,1);
+		}
+		
+		vec3 _mainTex = texture(mainTex, UV).xyz;
+		_mainTex = normalize( _mainTex * 2.0 - 1.0 );
+		_mainTex *= flipTex;
+		
+		float mainHeight = texture(heightTex, UV ).x;
+		
+
+		float startOffset = rand(vec3( UV.xy, cc_time.y * 3.0 ));
+		
+		vec2 AO = vec2(0,0);
+		float AOAccum = 0.0;
+		
+		vec2 direction;
+		direction.x = sin( _Progress * 6.28318530718 );
+		direction.y = cos( _Progress * 6.28318530718 );
+
+		float oneOverSpread = 1.0 / spread;
+
+    	int AOSamples = 50;
+		for (int i = 1; i <= 50; i++ ){
+			
+			float progress = float(i) / float(AOSamples);
+			vec2 randomizer = vec2( rand( vec3( UV.xy, float(i)) ), rand( vec3( UV.yx, float(i) ) ) ) * progress * 0.1;
+			vec2 uvOffset = direction * spread * progress + randomizer;
+			vec2 trueDir = normalize( uvOffset ); 
+
+			vec2 sampleUV = UV.xy + pixelSize.xy * uvOffset;
+
+			vec3 sampleTex = texture(mainTex, sampleUV ).xyz;
+			float sampleHeight = texture(heightTex,sampleUV ).x;
+			sampleTex = sampleTex * 2.0 - 1.0;
+			sampleTex *= flipTex;
+
+			// Normal Only, same as depth from normal
+			float sampleImportance = sqrt( 1.0 - progress );
+			AO.x += dot( sampleTex.xyz, vec3(trueDir, 1) ) * sampleImportance;   // todo 这个dot可能需要修改 可能要改为0
+			AOAccum += sampleImportance; 
+
+			// Depth Only, pure geometric occlusion
+			vec3 samplePos = vec3( trueDir * spread * progress, ( sampleHeight - mainHeight ) * depth );
+			float sampleDist = saturate( length( samplePos ) * 0.1 );
+			float sampleAO = saturate( dot( vec3(0,0,1), normalize( samplePos ) ) );
+			AO.y = max( sampleAO * sampleDist, AO.y );
+		}
+		
+		AO.x *= 1.0 / AOAccum;
+		float AOX1 = saturate( AO.x + 1.0 ); // Dark Parts
+		float AOX2 = saturate( AO.x + 0.5 ); // light parts
+		AO.x = pow( AOX1, 5.0 );
+		AO.x *= pow( AOX2, 0.2 );
+		AO.x = sqrt(AO.x);
+
+		AO.y = 1.0 - AO.y;
+		
+		vec2 blendTex = texture(blendTex, UV ).xy;
+		
+		AO = lerp( blendTex.xy, AO, blendAmount );
+		
+		return vec4( AO.xy, 1.0, 1.0 );
+	}
+}%

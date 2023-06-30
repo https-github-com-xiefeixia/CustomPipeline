@@ -1,0 +1,284 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      properties: &props
+        mainTex:                { value: white }
+        heightTex:              { value: white }
+        targetTex:              { value: white }
+        falloff:                { value: 0.0 }
+        overlapX:               { value: 0.0 }
+        overlapY:               { value: 0.0 }
+        smoothBlend:            { value: 0.0 }
+        gamaCorrection:         { value: 0.0 }
+        isSingleChannel:        { value: 0.0 }
+        isHeight:               { value: 0.0 }
+        isNormal:               { value: 0.0 }
+        flipY:                  { value: 0.0 }
+        splatScale:             { value: 0.0 }
+  
+        splatRotation:          { value: 0.0 }
+        splatRotationRandom:    { value: 0.0 }
+        splatRandomize:         { value: 0.0 }
+
+        aspectRatio:            { value: [0.0, 0.0]}
+        targetAspectRatio:      { value: [0.0, 0.0] }
+        objectScale:            { value: [0.0, 0.0 ,0.0], target: objectScale.xyz }
+        wobble:                 { value: [0.0, 0.0, 0.0], target: wobble.xyz }
+        splatKernel:            { value: [1.0, 1.0, 1.0, 1.0] }
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragsplat
+      properties: *props
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag_clear
+      properties: *props  
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag_transfer
+      properties: *props    
+}%
+
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <units>
+  uniform Constants {
+      vec4  splatKernel;
+      mat4 splatMatrix;
+      vec4  wobble;
+      vec4  objectScale;
+
+      vec2  aspectRatio;
+      vec2  targetAspectRatio;
+
+      float  falloff;
+      float  overlapX;
+      float  overlapY;
+      float  smoothBlend;
+      float  gamaCorrection;
+      float  isSingleChannel;
+      float  isHeight;
+      float  isNormal;
+      float  flipY;
+      float  splatScale;
+
+      float  splatRotation;
+      float  splatRotationRandom;
+      float  splatRandomize;
+
+
+  };
+
+  in vec4 color;
+  in vec2 uv0;
+  uniform sampler2D mainTex; 
+  uniform sampler2D heightTex; 
+  uniform sampler2D targetTex; 
+
+  const int OffsetKernelSamples = 9;		
+	vec2 OffsetKernel[OffsetKernelSamples];
+
+   vec4 frag ()
+	{
+		
+		vec2 overlap = vec2( overlapX, overlapY );
+		vec2 invOverlap = 1.0 - vec2( overlapX, overlapY );
+		vec2 oneOverOverlap = 1.0 / vec2( overlapX, overlapY );
+		
+		vec2 UV = uv0;
+		vec2 UV2 = UV - vec2( overlap.x, 0.0 );
+		vec2 UV3 = UV - vec2( 0.0, overlap.y );
+		vec2 UV4 = UV - vec2( overlap.x, overlap.y );
+		
+		vec2 UVMask = saturate( (  1.0 - frac( UV + 0.0 ) - invOverlap ) * oneOverOverlap );
+		
+		UV = frac( UV );
+		UV2 = frac( UV2 );
+		UV3 = frac( UV3 );
+		UV4 = frac( UV4 );
+		
+		UV *= invOverlap;
+		
+		UV2.x += overlap.x;
+		UV2 *= invOverlap;
+		
+		UV3.y += overlap.y;
+		UV3 *= invOverlap;
+		
+		UV4 += overlap;
+		UV4 *= invOverlap;
+		
+		float heightTex1 = texture(heightTex, UV ).x;
+		float heightTex2 = texture(heightTex, UV2 ).x;
+		float heightTex3 = texture(heightTex, UV3 ).x;
+		float heightTex4 = texture(heightTex, UV4 ).x;
+		
+		vec4 mainTex1 = texture(mainTex, UV);
+		vec4 mainTex2 = texture(mainTex,UV2 );
+		vec4 mainTex3 = texture(mainTex, UV3);
+		vec4 mainTex4 = texture(mainTex, UV4 );
+
+		float SSHigh =  0.01 + ( 0.5 * saturate( falloff ) );
+		float SSLow =  -0.01 - ( 0.5 * saturate( falloff ) );
+		float TexBlend = smoothstep( SSLow, SSHigh, ( heightTex2 + UVMask.x ) - ( heightTex1 + ( 1.0 - UVMask.x ) ) );
+		
+		
+		vec4 blendTexH = lerp( mainTex1, mainTex2, UVMask.x );
+		float heightTexH = max( heightTex1 + ( 1.0 - UVMask.x ), heightTex2 + UVMask.x ) - 1.0;
+		heightTexH += saturate( min( UVMask.x, ( 1.0 - UVMask.x ) ) );
+		vec4 mainTexH = lerp( mainTex1, mainTex2, TexBlend );
+		
+		TexBlend = smoothstep( SSLow, SSHigh, ( heightTex4 + UVMask.x ) - ( heightTex3 + ( 1.0 - UVMask.x ) ) );
+		
+		vec4 blendTexV = lerp( mainTex3, mainTex4, UVMask.x );
+		float heightTexV = max( heightTex3 + ( 1.0 - UVMask.x ), heightTex4 + UVMask.x ) - 1.0;
+		heightTexV += saturate( min( UVMask.x, ( 1.0 - UVMask.x ) ) );
+		vec4 mainTexV = lerp( mainTex3, mainTex4, TexBlend );
+		
+		TexBlend = smoothstep( SSLow, SSHigh, ( heightTexV + UVMask.y ) - ( heightTexH + ( 1.0 - UVMask.y ) ) );
+		
+		vec4 blendTex = lerp( mainTexH, mainTexV, UVMask.y );
+		heightTex1 = max( heightTexH + ( 1.0 - UVMask.y ), heightTexV + UVMask.y ) - 1.0;
+		heightTex1 += saturate( min( UVMask.y , ( 1.0 - UVMask.y ) ) );
+		mainTex1 = lerp( mainTexH, mainTexV, TexBlend );	
+		
+		if( isHeight > 0.5 ){
+			return vec4( heightTex1,heightTex1,heightTex1, 1.0 );
+		} else {
+			return vec4( mainTex1.xyz, 1.0 );
+		}
+
+	}
+	
+	vec4 fragsplat ()
+	{
+		
+		vec2 overlap = vec2( overlapX, overlapY );
+		vec2 invOverlap = 1.0 - vec2( overlapX, overlapY );
+		vec2 oneOverOverlap = 1.0 / vec2( overlapX, overlapY );
+		
+		vec4 targetTex1 = texture( targetTex, uv0);
+		targetTex1.w = ( 1.0 / targetTex1.w ) - 1.0;
+		vec4 tempTex = vec4(0,0,0,0);
+		
+    OffsetKernel[0] = vec2(1,1);
+    OffsetKernel[1] = vec2(0,1);
+    OffsetKernel[2] = vec2(-1,1);
+    OffsetKernel[3] = vec2(1,0);
+    OffsetKernel[4] = vec2(0,0);
+    OffsetKernel[5] = vec2(-1,0);
+    OffsetKernel[6] = vec2(1,-1);
+    OffsetKernel[7] = vec2(0,-1);
+    OffsetKernel[8] = vec2(-1,-1);
+
+		for( int i = 0; i < OffsetKernelSamples; i++ ){
+
+			vec2 localPos = ( uv0 - splatKernel.xy + OffsetKernel[i].xy) * ( 1.0 / ( splatScale * splatKernel.z ) ) * targetAspectRatio;
+
+			float rotation = splatRotation * -6.28318530718;
+			rotation += splatRotationRandom * splatRandomize * -6.28318530718;
+			vec2 tempPos = localPos;
+			localPos.x = cos( rotation ) * tempPos.x - sin( rotation ) * tempPos.y;
+			localPos.y = sin( rotation ) * tempPos.x + cos( rotation ) * tempPos.y;
+
+			vec2 localMaskPos = localPos * 2.0;
+			float CenterMask = pow( saturate( ( ( 1.0 - saturate( abs( localMaskPos.x ) ) ) * ( 1.0 - saturate( abs( localMaskPos.y ) ) ) - 0.1 ) * 2.0 ), 0.3 );
+			float UVMask = saturate( ( 1.0 - saturate( abs( localMaskPos.x ) ) ) * ( 1.0 - saturate( abs( localMaskPos.y ) ) ) * 10.0 );
+
+			localPos *= aspectRatio.yx;
+			localPos *= ( 1.0 / (wobble.z + 1.0) );
+			localPos += wobble.xy * wobble.z;
+			localPos += 0.5;
+
+			float heightTex1 = texture(heightTex, localPos.xy).x;
+			vec4 thisTex = texture(mainTex,  localPos.xy );
+			
+			float SSHigh =  0.01 + ( 0.5 * saturate( falloff ) );
+			float SSLow =  -0.01 - ( 0.5 * saturate( falloff ) );
+			if( isHeight > 0.5 ){
+				SSHigh =  0.01 + 0.25;
+				SSLow =  -0.01 - 0.25;
+			}
+			
+			if( isNormal > 0.5 ){				
+				vec3 tempTex = thisTex.xyz * 2.0 - 1.0;
+				
+
+				if( flipY > 0.5 ){
+					rotation *= -1.0;
+				}
+				
+				thisTex.x = cos( rotation ) * tempTex.x - sin( rotation ) * tempTex.y;
+				thisTex.y = sin( rotation ) * tempTex.x + cos( rotation ) * tempTex.y;
+				//thisTex.y *= -1.0;
+				thisTex.xy = thisTex.xy * 0.5 + 0.5;
+			}
+
+
+			float thisHeight = ( heightTex1+ 0.2 ) * CenterMask * UVMask;
+			float TexBlend = smoothstep( SSLow, SSHigh, targetTex1.w - thisHeight );
+			targetTex1.xyz = lerp( thisTex.xyz, targetTex1.xyz, TexBlend );
+			targetTex1.w = max( targetTex1.w, thisHeight );
+
+		}
+		
+		targetTex1.w = 1.0 / ( targetTex1.w + 1.0 );
+		
+		return targetTex1;
+
+	}
+	
+	vec4 frag_clear () 
+	{
+		return vec4(0,0,0,1);
+	}
+	
+	vec4 frag_transfer () 
+	{
+		vec4 _mainTex = texture(mainTex, uv0 );
+		return vec4(_mainTex.xyz,1);
+	}
+	
+
+}%

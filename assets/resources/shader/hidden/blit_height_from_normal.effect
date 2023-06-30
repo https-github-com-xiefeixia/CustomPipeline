@@ -1,0 +1,166 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragHeight
+      properties: &props
+        mainTex:                    { value: white }
+        blendTex:                   { value: white }
+        imageSize:                 { value: [1, 1, 1, 1]}
+
+        spread:                    { value: 0.0, target: param.x }
+        spreadBoost:               { value: 0.0, target: param.y }
+        
+        finalContrast:             { value: 0.0, target: param.z }
+        finalBias:                 { value: 0.0, target: param.w }
+
+        blendAmount:               { value: 0.0, target: param2.x }
+        progress:                  { value: 0.0, target: param2.y } 
+
+        # samples:                   { value: 50, editor:  { slide: true, range: [0, 100], step: 1 } }
+        flipNormalY:               { value: 1, editor:  { slide: true, range: [0, 1], step: 1 } }
+
+    - vert: sprite-vs:vert
+      frag: sprite-fs:fragCombineHeight
+      properties: *props
+}%
+
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global> 
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <units>
+  uniform Constants {
+    vec4 imageSize;
+    vec4 param;
+    vec4 param2;
+
+    int flipNormalY;
+  };
+
+  in vec4 color;
+  in vec2 uv0;
+  uniform sampler2D mainTex; 
+  uniform sampler2D blendTex;
+    
+	vec4 fragHeight () 
+	{
+	
+		vec2 pixelSize = ( 1.0 / imageSize.xy );
+		vec2 UV = uv0;
+
+		vec3 flipTex = vec3(1,1,1);
+		if( flipNormalY == 0 ){
+			flipTex = vec3(1,-1,1);
+		}
+		
+		//half3 mainTex = tex2Dlod(_MainTex, vec4( UV.xy, 0, 0 ) ).xyz;
+		//mainTex = mainTex * 2.0 - 1.0;
+		//mainTex *= flipTex;
+		
+	
+		float startOffset = rand( vec3( UV, cc_time.y ) );
+		
+		vec2 direction;
+		direction.x = sin( param2.y * 6.28318530718 );
+		direction.y = cos( param2.y * 6.28318530718 );
+		
+		float Weight = 0.0;
+		float TotalWeight = 0.0;
+		float AO = 0.0;
+
+  	// int AOSamples = samples;  
+    int AOSamples = 50;  
+		for(int i = 1; i <= 50; i++ ){ // 这里原来是AOSamples 但是由于shader中的for循环不能使用变量，所以改成50
+			
+			float passProgress = float(i) / float(AOSamples);
+			vec2 randomizer = vec2( rand( vec3( UV.xy,float(i) ) ), rand( vec3( UV.yx,float(i) ) ) ) * passProgress * 0.1;
+			vec2 uvOffset = direction * param.x * ( passProgress * param.y ) + randomizer;
+			vec2 trueDir = normalize( uvOffset );
+
+			vec2 sampleUV = UV.xy + pixelSize.xy * uvOffset;
+
+			vec3 sampleTex = texture(mainTex, sampleUV ).xyz;
+			sampleTex = sampleTex * 2.0 - 1.0;
+			sampleTex *= flipTex;
+			
+			float sampleAO = dot( sampleTex, normalize( vec3( trueDir, 0.0 ) ) );
+			
+			//Weight = sqrt( 1.0 - passProgress );
+			//Weight = 1.0 - passProgress;
+			Weight = 1.0;
+			//Weight = 3.14 * passProgress;
+			TotalWeight += Weight;
+			AO += sampleAO * Weight;
+			
+		}
+
+		AO *= 1.0 / TotalWeight;
+		AO *= ( float(AOSamples) * param.y ) / 50.0;
+		AO = AO * 0.5 + 0.5;
+
+
+		
+		float _blendTex = texture(blendTex, uv0 ).x;
+		
+		AO = lerp( _blendTex, AO, param2.x );
+		
+		return vec4( AO,AO,AO, 1.0 );
+	}
+	
+	vec4 fragCombineHeight () 
+	{
+	
+		vec2 UV = uv0;
+		
+		float _mainTex = texture(mainTex, UV ).x;
+		
+		_mainTex = ( _mainTex - 0.5 ) * param.z + 0.5;
+		_mainTex += param.w;
+		_mainTex = saturate( _mainTex );
+		
+		return vec4( _mainTex, _mainTex, _mainTex, 1.0 );
+	}
+
+}%

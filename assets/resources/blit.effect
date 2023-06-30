@@ -8,7 +8,7 @@ CCEffect %{
       frag: blit-fs
       pass: blit-custom
       properties: &props
-        mainTexture:              { value: grey, target: tex, editor: { displayName: InputTexture } }
+        mainTex:              { value: grey}
 }%
 
 CCProgram blit-vs %{
@@ -33,11 +33,11 @@ CCProgram blit-fs %{
   #include <builtin/uniforms/cc-global>
   in vec2 v_uv;
 
-  uniform sampler2D tex;
+  uniform sampler2D mainTex;
   layout(location = 0) out vec4 fragColor;
 
   void main () {
-    vec4 color = texture(tex, v_uv); 
+    vec4 color = texture(mainTex, v_uv); 
 
     fragColor = color * vec4(0.5, 0.2, 0.3, 1.0);
   }

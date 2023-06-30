@@ -3,6 +3,7 @@
     "__type__": "cc.SceneAsset",
     "_name": "scene",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_native": "",
     "scene": {
       "__id__": 1
@@ -12,6 +13,7 @@
     "__type__": "cc.Scene",
     "_name": "scene",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": null,
     "_children": [
       {
@@ -79,6 +81,7 @@
     "__type__": "cc.Node",
     "_name": "Main Light",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 1
     },
@@ -123,6 +126,7 @@
     "__type__": "cc.DirectionalLight",
     "_name": "",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 2
     },
@@ -171,8 +175,9 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "Main Camera-001",
+    "_name": "Main Camera",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 1
     },
@@ -217,6 +222,7 @@
     "__type__": "cc.Camera",
     "_name": "",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 5
     },
@@ -251,10 +257,7 @@
     "_iso": 0,
     "_screenScale": 1,
     "_visibility": 1822425087,
-    "_targetTexture": {
-      "__uuid__": "28734e67-12c6-4ae3-8ed6-73abc1211807",
-      "__expectedType__": "cc.RenderTexture"
-    },
+    "_targetTexture": null,
     "_postProcess": null,
     "_usePostProcess": false,
     "_cameraType": -1,
@@ -265,6 +268,7 @@
     "__type__": "cc.Node",
     "_name": "Main Camera-002",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 1
     },
@@ -309,6 +313,7 @@
     "__type__": "cc.Camera",
     "_name": "",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 7
     },
@@ -354,6 +359,7 @@
     "__type__": "cc.Node",
     "_name": "Plane",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 1
     },
@@ -408,6 +414,7 @@
     "__type__": "cc.Node",
     "_name": "Cube-001",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 9
     },
@@ -452,6 +459,7 @@
     "__type__": "cc.MeshRenderer",
     "_name": "Cube<ModelComponent>",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 10
     },
@@ -506,6 +514,7 @@
     "__type__": "cc.Node",
     "_name": "Cube-002",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 9
     },
@@ -550,6 +559,7 @@
     "__type__": "cc.MeshRenderer",
     "_name": "Cube<ModelComponent>",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 13
     },
@@ -604,6 +614,7 @@
     "__type__": "cc.Node",
     "_name": "Sphere",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 9
     },
@@ -648,6 +659,7 @@
     "__type__": "cc.MeshRenderer",
     "_name": "Sphere<ModelComponent>",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 16
     },
@@ -702,6 +714,7 @@
     "__type__": "cc.MeshRenderer",
     "_name": "Plane<ModelComponent>",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 9
     },
@@ -756,6 +769,7 @@
     "__type__": "cc.Node",
     "_name": "Sphere Light001",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 1
     },
@@ -800,6 +814,7 @@
     "__type__": "cc.SphereLight",
     "_name": "",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 21
     },
@@ -836,6 +851,7 @@
     "__type__": "cc.Node",
     "_name": "Sphere Light002",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 1
     },
@@ -880,6 +896,7 @@
     "__type__": "cc.SphereLight",
     "_name": "",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 24
     },
@@ -916,6 +933,7 @@
     "__type__": "cc.Node",
     "_name": "Spot Light",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 1
     },
@@ -960,6 +978,7 @@
     "__type__": "cc.SpotLight",
     "_name": "",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 27
     },
@@ -1001,6 +1020,7 @@
     "__type__": "cc.Node",
     "_name": "Spot Light-001",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "_parent": {
       "__id__": 1
     },
@@ -1045,6 +1065,7 @@
     "__type__": "cc.SpotLight",
     "_name": "",
     "_objFlags": 0,
+    "__editorExtras__": {},
     "node": {
       "__id__": 30
     },

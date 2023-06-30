@@ -1,0 +1,128 @@
+// Effect Syntax Guide: https://docs.cocos.com/creator/manual/zh/shader/index.html
+
+CCEffect %{
+  techniques:
+  - name: opaque
+    passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      properties: &props
+        mainTex:    { value: white }
+        correctTex:     { value: white }
+}%
+
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #if USElOCAL
+    #include <builtin/uniforms/cc-local>
+  #endif
+  #if SAMPLE_FROM_RT
+    #include <common/common-define>
+  #endif
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    #if USElOCAL
+      pos = cc_matWorld * pos; 
+    #endif
+
+    #if USE_PIXEL_ALIGNMENT
+      pos = cc_matView * pos;
+      pos.xyz = floor(pos.xyz);
+      pos = cc_matProj * pos;
+    #else
+      pos = cc_matViewProj * pos;
+    #endif
+
+    uv0 = a_texCoord;
+    #if SAMPLE_FROM_RT
+      CC_HANDLE_RT_SAMPLE_FLIP(uv0);
+    #endif
+    color = a_color; 
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <hidden/units>
+  uniform Constant {
+    vec4 mainColor;
+    vec2 pointTL;
+    vec2 pointTR;
+    vec2 pointBL;
+    vec2 pointBR;
+    vec2 pointScale;
+    vec2 targetPoint;
+
+    float slider;
+    float _GamaCorrection;
+  };
+  in vec4 color;
+  in vec2 uv0;
+  uniform sampler2D mainTex;
+  uniform sampler2D correctTex;
+
+  vec4 frag ()
+	{
+		vec2 UV = uv0;
+		
+	  vec2 UVPoint = UV * pointScale;
+    vec4 c = texture (mainTex, UV);
+    vec4 c2 = texture (correctTex, UV);
+    
+    float dotSize = 0.025;
+    float dotEdge = 0.001;
+    
+    vec2 flippedUV = UV;
+    flippedUV.y = 1.0 - flippedUV.y;
+    
+    vec2 pointTL = pointTL * pointScale;
+    vec2 pointTR = pointTR * pointScale;
+    vec2 pointBL = pointBL * pointScale;
+    vec2 pointBR = pointBR * pointScale;
+    
+    float dot1 = 1.0 - smoothstep( dotSize - dotEdge, dotSize, distance(pointTL, UVPoint) );
+    float dot2 = 1.0 - smoothstep( dotSize - dotEdge, dotSize, distance(pointTR, UVPoint) );
+    float dot3 = 1.0 - smoothstep( dotSize - dotEdge, dotSize, distance(pointBL, UVPoint) );
+    float dot4 = 1.0 - smoothstep( dotSize - dotEdge, dotSize, distance(pointBR, UVPoint) );
+    
+    float tp = 1.0 - smoothstep( 0.009, 0.010, distance( targetPoint * pointScale, UVPoint) );
+    
+    float dots = max( max( dot1, dot2 ), max( dot3, dot4 ) );
+    
+    //vec2 newUVtop = lerp( pointTL, pointTR, UV.x );
+    //vec2 newUVbot = lerp( pointBL, pointBR, UV.x );
+    //vec2 newUV = lerp( newUVbot, newUVtop, UV.y );
+    //vec4 c2 = tex2D (_MainTex, newUV);				
+    
+    float minDist = minimum_distance(pointTL, pointTR, UVPoint );
+    minDist = min( minDist, minimum_distance(pointTR, pointBR, UVPoint ) ); 
+    minDist = min( minDist, minimum_distance(pointBR, pointBL, UVPoint ) );
+    minDist = min( minDist, minimum_distance(pointBL, pointTL, UVPoint ) );
+    
+    float guideLine = 1.0 - smoothstep( 0.004, 0.005, minDist );
+    
+    c = lerp( c, vec4(1.0,1.0,1.0,1.0), dots * 0.5 );
+    c = lerp( c,  vec4(1.0,1.0,1.0,1.0), guideLine * 0.3 );
+    c = lerp( c, vec4(1.0,0.5,0.0,1.0 ), tp );
+    
+    c2 = lerp( c2,  vec4(1.0,1.0,1.0,1.0), dots * 0.2 );
+    c2 = lerp( c2,  vec4(1.0,1.0,1.0,1.0), guideLine * 0.2 );
+    c2 = lerp( c2, vec4(1.0,0.5,0.0,1.0 ), tp * 0.5 );
+    
+    vec3 finalColor = lerp( c.xyz, c2.xyz, smoothstep( slider - 0.01, slider + 0.01, UV.x ) );
+
+    return vec4( finalColor, 1 );
+	}
+
+}%
